@@ -84,20 +84,39 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px 6px;border-bottom:1p
  .b{min-height:44px;padding:10px 16px}.g{min-height:40px;padding:6px 12px}
  .row>input,.row>select,.row>label{flex:1 1 100%;min-width:0}
  .row>label input,.row>label select{width:100%}
- main table,main table thead,main table tbody,main table tr,main table td{display:block;width:100%}
- main table{border:0!important;background:none!important;border-radius:0}
- main table thead{display:none}
- main table tr{border:1px solid var(--ln);border-radius:14px;margin:0 0 10px;padding:4px 0;background:#fff}
- main table td{white-space:normal!important;flex-wrap:wrap;display:flex;justify-content:space-between;align-items:center;gap:12px;border:0!important;padding:6px 12px!important;text-align:right!important;min-width:0;word-break:break-word}
- main table td::before{content:attr(data-label);flex:0 0 36%;text-align:left;font-size:12px;font-weight:600;color:var(--mu)}
- main table td[data-label=""]::before,main table td[data-span]::before{content:none}
- main table td[data-label=""]{justify-content:flex-end}
- main table td[data-span]{display:block;text-align:left!important}
- main table tr{position:relative}
- main table td[data-tg]{position:absolute;top:6px;right:6px;width:auto;padding:0!important;display:block;z-index:1}
- main table td[data-name]{display:block;text-align:left!important;padding:10px 60px 6px 12px!important;font-size:15px}
- main table td[data-name]::before{content:none}
- main table td:first-child{border-radius:13px 13px 0 0}main table td:last-child{border-radius:0 0 13px 13px}
+ main table:not([data-keep]),main table:not([data-keep]) thead,main table:not([data-keep]) tbody,main table:not([data-keep]) tr,main table:not([data-keep]) td{display:block;width:100%}
+ main table:not([data-keep]){border:0!important;background:none!important;border-radius:0}
+ main table:not([data-keep]) thead{display:none}
+ main table:not([data-keep]) tr{border:1px solid var(--ln);border-radius:14px;margin:0 0 8px;padding:2px 0;background:#fff}
+ main table:not([data-keep]) td{white-space:normal!important;flex-wrap:wrap;display:flex;justify-content:space-between;align-items:center;gap:10px;border:0!important;padding:3px 12px!important;text-align:right!important;min-width:0;word-break:break-word}
+ main table:not([data-keep]) td::before{content:attr(data-label);flex:0 0 36%;text-align:left;font-size:12px;font-weight:600;color:var(--mu)}
+ main table:not([data-keep]) td[data-label=""]::before,main table:not([data-keep]) td[data-span]::before{content:none}
+ main table:not([data-keep]) td[data-label=""]{justify-content:flex-end}
+ main table:not([data-keep]) td[data-span]{display:block;text-align:left!important}
+ main table:not([data-keep]) tr{position:relative}
+ main table:not([data-keep]) td[data-tg]{position:absolute;top:6px;right:6px;width:auto;padding:0!important;display:block;z-index:1}
+ main table:not([data-keep]) td[data-name]{display:block;text-align:left!important;padding:8px 56px 3px 12px!important;font-size:15px}
+ main table:not([data-keep]) td[data-name]::before{content:none}
+ main table:not([data-keep]) td:first-child{border-radius:13px 13px 0 0}main table:not([data-keep]) td:last-child{border-radius:0 0 13px 13px}
+ main table[data-keep]{width:100%;font-size:12px!important;border-collapse:collapse}
+ main table[data-keep] td,main table[data-keep] th{padding:6px 3px!important;vertical-align:top;word-break:break-word}
+ main table[data-keep] th,main table[data-keep] td[style*="right"]{white-space:nowrap!important}
+ main table[data-keep] td:first-child,main table[data-keep] th:first-child{padding-left:2px!important}
+ main table[data-keep] td:last-child,main table[data-keep] th:last-child{padding-right:2px!important}
+ main table.acc tr{display:grid!important;grid-template-columns:auto 1fr auto;grid-template-areas:"tg nm sa" "tg jn ct";column-gap:10px;row-gap:2px;align-items:center;padding:8px 10px}
+ main table.acc tr td{display:block!important;padding:0!important;text-align:left!important;white-space:normal!important;width:auto!important}
+ main table.acc tr td::before{content:none!important}
+ main table.acc tr td[data-tg]{position:static!important;grid-area:tg;align-self:center}
+ main table.acc tr td:nth-child(2){grid-area:nm;font-size:15px!important;padding:0!important}
+ main table.acc tr td:nth-child(3){grid-area:jn;font-size:12px}
+ main table.acc tr td:nth-child(4){grid-area:sa;text-align:right!important}
+ main table.acc tr td:nth-child(5){grid-area:ct;text-align:right!important}
+ main table.acc tr td:last-child:empty{display:none!important}
+ main table.acc tr td[data-span]{grid-column:1/-1;grid-area:auto}
+ .card{padding:14px}
+ .row .ft{order:3}
+ .row>span[style*="inline-block"]{flex:0 0 auto;min-width:0}.row>b,.row>.fa{min-width:0}.row>.fa{font-size:16px!important}
+ main table:not([data-keep]) td[data-name]{min-height:44px}
  .tb tbody tr:nth-child(even){background:#fff}
  [data-sync-chip]{bottom:82px!important}
 }
@@ -127,9 +146,38 @@ const mig=s=>{const o={...INIT,...s,set:{...INIT.set,...s.set},...(s.catv>=2?{}:
   o.accs=(o.accs||[]).map(a=>{if(a.tg>0){const bs=a.own==='Bersama';fund.push({id:uid(),name:a.name,kind:bs?'sinking':'tabungan',own:bs?'Bersama':'Pribadi',share:bs?50:100,acc:a.id,open:ab(a),od:t0,frozen:false,loan:false,auto:false,tg:[{id:uid(),n:'Target',amt:a.tg,date:a.td||''}],todo:bs&&!a.td});return{...a,tg:0,td:''}}return a});
   o.fund=[...(s.fund||[]),...fund];o.fe=s.fe||[];o.ef=0;o.sink=[];o.fv=2}
  o.imig=true;o.ast=[...new Set([...(o.ast||INIT.ast),...o.ins.map(i=>i.cls)])];return o};
-const SKEY='veltrix_sync_v1',SY0={url:'',u:'',k:'',rev:0,h:'',auto:true,last:'',rem:true};
+const SKEY='veltrix_sync_v1',SY0={url:'',u:'',k:'',rev:0,h:'',rm:0,rs:0,hm:'',hss:'',auto:true,last:'',rem:true},SYR0={rm:0,rs:0,hm:'',hss:''};
 const sLoad=()=>{try{return{...SY0,...JSON.parse(localStorage.getItem(SKEY)||sessionStorage.getItem(SKEY)||'{}')}}catch(e){return{...SY0}}};
 const hs=o=>{const t=JSON.stringify(o);let x=0;for(let i=0;i<t.length;i++)x=(x*31+t.charCodeAt(i))|0;return x+':'+t.length};
+
+/* ===== Database tunggal: bagian pribadi (mine) + bagian bersama (shared) ===== */
+const SHK=['accs','tx','pk','al','ins','itx','debt','fund','fe'];
+const hasItems=p=>SHK.some(k=>(p[k]||[]).length>0);
+const splitD=(d,u)=>{
+ const accB={};(d.accs||[]).forEach(a=>{accB[a.id]=a.own==='Bersama'?1:0});
+ const isK=id=>Object.prototype.hasOwnProperty.call(accB,id);
+ const clr=o=>{if(o&&o._s!==undefined){const{_s,...r}=o;return r}return o};
+ const stamp=o=>{let r=clr(o);if(!r.cr)r={...r,cr:u};return r};
+ const txSh=t=>{const ids=[t.acc,t.type==='tf'?t.to:''].filter(Boolean);if(ids.some(i=>accB[i]===1))return true;return !!t._s&&ids.some(i=>!isK(i))};
+ const B=o=>o.own==='Bersama';
+ const sh={},mi={};
+ ['accs','pk','ins','debt','fund'].forEach(k=>{sh[k]=[];mi[k]=[];(d[k]||[]).forEach(o=>{B(o)?sh[k].push(stamp(o)):mi[k].push(clr(o))})});
+ sh.tx=[];mi.tx=[];(d.tx||[]).forEach(t=>{txSh(t)?sh.tx.push(clr(t)):mi.tx.push(clr(t))});
+ const ids=k=>{const m={};sh[k].forEach(o=>{m[o.id]=1});return m};
+ const idp=ids('pk'),idi=ids('ins'),idf=ids('fund');
+ [['al','pk',idp],['itx','ins',idi],['fe','fid',idf]].forEach(([k,f,m])=>{sh[k]=[];mi[k]=[];(d[k]||[]).forEach(o=>{(m[o[f]]?sh[k]:mi[k]).push(clr(o))})});
+ const mine={...d};SHK.forEach(k=>{mine[k]=mi[k]});
+ return{mine,shared:sh}};
+const ensureCats=o=>{
+ const add=(k,v)=>{if(v&&o[k].indexOf(v)<0)o[k]=[...o[k],v]};
+ o.tx.forEach(t=>{if(t.type==='out')add('cout',t.cat);else if(t.type==='in')add('cin',t.cat)});
+ o.ins.forEach(i=>add('ast',i.cls));o.debt.forEach(x=>add(x.kind==='kartu'?'kcat':'dcat',x.cat));return o};
+const composeD=(mine,shared,u)=>{
+ const m=mig(mine||{}),S=shared||{};
+ const fl=it=>it;
+ const o={...m};
+ SHK.forEach(k=>{const L=(S[k]||[]).map(it=>k==='tx'?{...it,_s:1}:(['accs','pk','ins','debt','fund'].indexOf(k)>=0?fl(it):it));o[k]=[...(m[k]||[]),...L]});
+ return ensureCats(o)};
 const DEFAULT_URL='https://script.google.com/macros/s/AKfycbzMDp-1fes0kNcs-TC8N8mItCNFS9P3g2zMJZafyxz1_oBGL6jtIjLhvJzc7RqAzB1_/exec';
 const gsCall=async(sy,action,extra)=>{const r=await fetch(sy.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,u:sy.u,k:sy.k,...extra}),redirect:'follow'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
 const load=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));return s?mig(s):INIT}catch(e){return INIT}};
@@ -218,7 +266,7 @@ function Pockets({d,setD,bal}){
  const [pm,setPm]=useState(ym),[open,setOpen]=useState({}),[np,setNp]=useState(false),[f,setF]=useState(F0),
   [ep,setEp]=useState(null),[sp,setSp]=useState(null),[er,setEr]=useState(null),[al,setAl]=useState(null),
   [ad,setAd]=useState(null),[mv,setMv]=useState(null),[dl,setDl]=useState(null),[mt,setMt]=useState(null);
- const mS=pm+'-01',mE=pm+'-31',pks=d.pk.filter(p=>!p.arch),aN=id=>(d.accs.find(x=>x.id===id)||{name:'(akun dihapus)'}).name,sm=(arr,fn)=>arr.filter(fn).reduce((s,x)=>s+x.amt,0);
+ const mS=pm+'-01',mE=pm+'-31',pks=d.pk.filter(p=>!p.arch),aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name,sm=(arr,fn)=>arr.filter(fn).reduce((s,x)=>s+x.amt,0);
  const stat=p=>{const A=d.al.filter(a=>a.pk===p.id),S=d.tx.filter(t=>t.pk===p.id&&t.type==='out'),M=d.tx.filter(t=>t.pk===p.id&&t.type==='tf'&&t.pkout),o=p.open||0;
   const before=o+sm(A,a=>a.date<mS)-sm(S,t=>t.date<mS)-sm(M,t=>t.date<mS),alloc=sm(A,a=>a.date>=mS&&a.date<=mE),used=sm(S,t=>t.date>=mS&&t.date<=mE),moved=sm(M,t=>t.date>=mS&&t.date<=mE);
   return{before,alloc,used,moved,avail:before+alloc,left:before+alloc-used-moved,all:o+sm(A,()=>true)-sm(S,()=>true)-sm(M,()=>true)}};
@@ -326,7 +374,7 @@ function Pockets({d,setD,bal}){
         <button className="b" style={{flex:'0 0 auto'}} onClick={savePk}>Simpan</button><button className="g" style={{flex:'0 0 auto'}} onClick={()=>setEp(null)}>Batal</button></div>:<>
        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <button className="g" aria-expanded={!!open[p.id]} aria-label={(open[p.id]?'Tutup':'Buka')+' rincian '+p.name} style={{minWidth:34,margin:0,fontWeight:700}} onClick={()=>setOpen({...open,[p.id]:!open[p.id]})}>{open[p.id]?'−':'+'}</button>
-        <div style={{flex:1,minWidth:120}}><b style={{fontSize:15}}>{p.name}</b><div className="mu" style={{fontSize:12}}>Kategori: {pcs.join(', ')}</div></div>
+        <div style={{flex:1,minWidth:90}}><b style={{fontSize:15}}>{p.name}</b><div className="mu" style={{fontSize:12}}>Kategori: {pcs.join(', ')}</div></div>
         <div style={{whiteSpace:'nowrap'}}>
          <button className="b" style={{padding:'5px 12px',marginRight:6}} onClick={()=>{setOpen({...open,[p.id]:true});setSp({pk:p.id,date:td,amt:'',note:'',cat:pcs[0]||''})}}>+ Catat</button>
          <Menu items={[{l:'Tambah dana',fn:()=>{setOpen({...open,[p.id]:true});setAd({pk:p.id,src:'',date:td,amt:my?ds(my):'',note:''})}},
@@ -408,7 +456,7 @@ const FKIND={darurat:'Dana Darurat',tabungan:'Tabungan Target',sinking:'Sinking 
 function FundPage({d,setD,bal,efT,req,clearReq}){
  const td=ymd(new Date()),efm=d.set.efm,funds=(d.fund||[]).filter(f=>!f.arch);
  const [open,setOpen]=useState({}),[fm,setFm]=useState(null),[sf,setSf]=useState(null),[per,setPer]=useState({});
- const aN=id=>(d.accs.find(x=>x.id===id)||{name:'(akun dihapus)'}).name;
+ const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name;
  const F0=k=>({mode:'add',kind:k,name:'',own:k==='sinking'?'Bersama':'Pribadi',share:'50',acc:'',open:'',od:td,frozen:k==='tabungan',loan:false,auto:k==='darurat',tg:[{id:uid(),n:'',amt:'',date:''}]});
  const toF=f=>({mode:'edit',id:f.id,kind:f.kind,name:f.name,own:f.own||'Pribadi',share:String(f.share||50),acc:f.acc||'',open:ds(f.open),od:f.od||td,frozen:!!f.frozen,loan:!!f.loan,auto:!!f.auto,tg:(f.tg||[]).length?f.tg.map(t=>({id:t.id,n:t.n||'',amt:ds(t.amt),date:t.date||''})):[{id:uid(),n:'',amt:'',date:''}]});
  const saveF=e=>{e.preventDefault();const k=fm.kind,bs=fm.own==='Bersama';
@@ -495,12 +543,12 @@ function FundPage({d,setD,bal,efT,req,clearReq}){
    <div className="row" style={{margin:0,alignItems:'center',flexWrap:'wrap'}}>
     <button className="g" aria-expanded={op} aria-label={(op?'Tutup':'Buka')+' rincian '+f.name} style={{minWidth:34,margin:0,fontWeight:700,flex:'0 0 auto'}} onClick={()=>setOpen({...open,[f.id]:!op})}>{op?'−':'+'}</button>
     <b style={{fontSize:16,color:'var(--dk)',flex:'0 0 auto'}}>{f.name}</b>
-    {f.own==='Bersama'&&<span className="tag" style={{background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {f.share||50}%</span>}
-    {f.frozen&&<span className="tag" style={{background:'#CFE8F7',color:'#1f4f73'}}>Beku</span>}
-    {f.loan&&<span className="tag" style={{background:'#d8f3dc',color:'#1b5e20'}}>Boleh dipakai darurat</span>}
-    {(!f.acc||f.todo)&&<span className="tag r">Lengkapi lewat Edit</span>}
-    {pj.out>0&&<span className="tag r">Pinjaman {K(pj.out)} belum kembali{pj.due?' · '+pj.due:''}</span>}
-    <span style={{marginLeft:'auto',fontWeight:700,fontSize:18}}>{$(b)}</span>
+    {f.own==='Bersama'&&<span className="tag ft" style={{background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {f.share||50}%</span>}
+    {f.frozen&&<span className="tag ft" style={{background:'#CFE8F7',color:'#1f4f73'}}>Beku</span>}
+    {f.loan&&<span className="tag ft" style={{background:'#d8f3dc',color:'#1b5e20'}}>Boleh dipakai darurat</span>}
+    {(!f.acc||f.todo)&&<span className="tag r ft">Lengkapi lewat Edit</span>}
+    {pj.out>0&&<span className="tag r ft">Pinjaman {K(pj.out)} belum kembali{pj.due?' · '+pj.due:''}</span>}
+    <span className="fa" style={{marginLeft:'auto',fontWeight:700,fontSize:18,whiteSpace:'nowrap',flex:'0 0 auto'}}>{$(b)}</span>
     <Menu label={'Aksi '+f.name} items={[{l:'Setor',fn:()=>{setOpen({...open,[f.id]:true});setSf(newS(f))}},{l:'Tarik',fn:()=>{setOpen({...open,[f.id]:true});setSf(newT(f))}},{l:'Edit',fn:()=>{setOpen({...open,[f.id]:true});setFm(toF(f))}},{l:'Hapus',danger:true,fn:()=>delF(f)}]}/></div>
    {nx&&<div style={{margin:'8px 0 2px'}}><Bar v={nx.pc}/><div className="mu" style={{fontSize:12,marginTop:3}}>{Math.round(nx.pc)}% menuju {nx.t.n}: {$(nx.goal)}{f.own==='Bersama'?' (porsi saya dari total '+$(nx.t.amt)+')':''}{nx.t.date?' · sampai '+nx.t.date:''}{nx.done?' · Target tercapai':nx.expired?'':nx.hint?' · '+nx.hint+(nx.per>0?' · setoran disarankan '+$(nx.per)+'/bulan':''):''}{nx.expired&&<span className="tag r" style={{marginLeft:6}}>Target terlewat · kurang {$(nx.goal-b)}. Tambah target lanjutan di Edit.</span>}</div></div>}
    <div className="row" style={{margin:'8px 0 0'}}><button className="b" style={{flex:'0 0 auto'}} onClick={()=>{setOpen({...open,[f.id]:true});setSf(sf&&sf.fid===f.id&&sf.k==='in'&&sf.mode==='add'?null:newS(f))}}>Setor</button>
@@ -525,7 +573,7 @@ function FundPage({d,setD,bal,efT,req,clearReq}){
 function DebtPage({d,setD,bal,req,clearReq}){
  const td=ymd(new Date());
  const [open,setOpen]=useState({}),[fm,setFm]=useState(null),[py,setPy]=useState(null),[ep,setEp]=useState(null),[mg,setMg]=useState(false),[arc,setArc]=useState(false),[bf,setBf]=useState(null),[eb,setEb]=useState(null);
- const aN=id=>(d.accs.find(x=>x.id===id)||{name:'(akun dihapus)'}).name;
+ const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name;
  const newPy=x=>({id:x.id,date:td,acc:([...(x.pay||[])].reverse().find(p=>p.acc)||{}).acc||(d.accs[0]||{}).id||'',amt:x.inst?ds(Math.min(x.inst*dSh(x),remOf(x))):'',int:'',note:'',by:'saya',pacc:(d.accs.find(a=>/piutang/i.test(a.name))||{id:'__new'}).id});
  useEffect(()=>{if(req){const x=d.debt.find(i=>i.id===req);if(x){setOpen(o=>({...o,[x.id]:true}));setPy(newPy(x))}clearReq&&clearReq()}},[req]);
  const newEc=()=>{const n=(prompt('Nama kategori biaya baru:')||'').trim();if(!n)return null;const ex=d.cout.find(c=>c.toLowerCase()===n.toLowerCase());if(ex)return ex;setD(x=>({...x,cout:[...x.cout,n]}));return n};
@@ -697,7 +745,7 @@ function Invest({d,setD,bal}){
  const td=ymd(new Date());
  const [open,setOpen]=useState({}),[ni,setNi]=useState(false),[fi,setFi]=useState({name:'',cls:'',rk:'',own:'Pribadi',share:'50',rdn:'',q:'',p:'',pr:''}),
   [ei,setEi]=useState(null),[fx,setFx]=useState(null),[et,setEt]=useState(null),[pu,setPu]=useState(null);
- const aN=id=>(d.accs.find(x=>x.id===id)||{name:'(akun dihapus)'}).name,S=d.set;
+ const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name,S=d.set;
  const eiInit=i=>{const o=d.itx.find(t=>t.ins===i.id&&t.k==='open');return{id:i.id,name:i.name,cls:i.cls,rk:i.rk||'',own:i.own,share:String(i.share||50),rdn:i.rdn||'',q:o?String(o.qty).replace('.',','):'',p:o?String(o.price).replace('.',','):''}};
  const newAst=()=>{const n=(prompt('Nama jenis aset baru:')||'').trim();if(!n)return null;const ex=d.ast.find(c=>c.toLowerCase()===n.toLowerCase());if(ex)return ex;setD(x=>({...x,ast:[...x.ast,n]}));return n};
  const AstPick=(v,fn)=><select value={v} title="Jenis aset" onChange={e=>{if(e.target.value==='__new'){const n=newAst();n&&fn(n)}else fn(e.target.value)}}>{[...new Set([v,...d.ast])].filter(Boolean).map(c=><option key={c}>{c}</option>)}<option value="__new">+ Jenis baru…</option></select>;
@@ -838,7 +886,7 @@ function CashFlow({d,setD,bal}){
  else if(per.mode==='y'){from=yr+'-01-01';to=yr+'-12-31'}
  else if(per.mode==='r'){from=per.from;to=per.to;
   if(!from||!to)warn='Isi tanggal awal dan tanggal akhir.';else if(from>to)warn='Tanggal awal harus sebelum tanggal akhir.';else if((new Date(to)-new Date(from))/864e5>366)warn='Rentang maksimal 1 tahun.'}
- const aN=id=>(d.accs.find(x=>x.id===id)||{name:'(akun dihapus)'}).name;
+ const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name;
  const cats=f.type==='in'?d.cin:d.cout,cat=cats.includes(f.cat)?f.cat:(cats[0]||''),acc=d.accs.some(a=>a.id===f.acc)?f.acc:(d.accs[0]||{}).id,
   toId=d.accs.some(a=>a.id===f.to&&a.id!==acc)?f.to:(d.accs.find(a=>a.id!==acc)||{}).id;
  const newCat=ty=>{const n=(prompt('Nama kategori '+(ty==='in'?'pemasukan':'pengeluaran')+' baru:')||'').trim();if(!n)return null;
@@ -901,7 +949,7 @@ function CashFlow({d,setD,bal}){
    return <div key={g} style={{marginTop:16}}>
     <div style={{display:'flex',alignItems:'center',gap:8,margin:'0 0 8px'}}><b style={{color:'var(--dk)',fontSize:15}}>Akun {g}</b><span className="tag" style={{background:'var(--sand)',color:'var(--dk)'}}>{list.length}</span>
      <span className="mu" style={{marginLeft:'auto'}}>Total saldo <b>{$(list.reduce((s,a)=>s+bal(a),0))}</b></span></div>
-    <div style={{overflowX:'auto'}}><table className="tb"><thead><tr><th style={{width:52}}/><th>Akun</th><th>Jenis</th><th style={{textAlign:'right'}}>Saldo</th><th/></tr></thead><tbody>
+    <div style={{overflowX:'auto'}}><table className="tb acc"><thead><tr><th style={{width:52}}/><th>Akun</th><th>Jenis</th><th style={{textAlign:'right'}}>Saldo</th><th/></tr></thead><tbody>
     {list.map(a=>{const op=!!open[a.id],txs=warn?[]:d.tx.filter(t=>(t.acc===a.id||t.to===a.id)&&t.date>=from&&t.date<=to).sort((x,y)=>x.date.localeCompare(y.date)),
      im=txs.reduce((s,t)=>s+(((t.type==='in'&&t.acc===a.id)||(t.type==='tf'&&t.to===a.id)||(t.type==='inv'&&t.dir==='in'&&t.acc===a.id))?t.amt:0),0),
      om=txs.reduce((s,t)=>s+(((t.type==='out'||t.type==='tf'||t.type==='dbt'||(t.type==='inv'&&t.dir==='out'))&&t.acc===a.id)?t.amt:0),0);
@@ -994,29 +1042,52 @@ function App(){
  useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}},[d]);
  const [sy,setSyS]=useState(sLoad),[ss,setSs]=useState({st:'idle',msg:''}),syR=useRef(sy),dRef=useRef(d),tm=useRef(null),bz=useRef(false),cfR=useRef(false),ssR=useRef(ss);dRef.current=d;ssR.current=ss;
  const setSy=pt=>{const n={...syR.current,...pt};syR.current=n;try{if(n.rem===false){sessionStorage.setItem(SKEY,JSON.stringify(n));localStorage.removeItem(SKEY)}else{localStorage.setItem(SKEY,JSON.stringify(n));sessionStorage.removeItem(SKEY)}}catch(e){}setSyS(n)};
- useEffect(()=>{let raf=0;const lab=()=>{document.querySelectorAll('main table').forEach(t=>{const hs=[...t.querySelectorAll('thead th')].map(h=>(h.textContent||'').trim());if(!hs.length)return;t.querySelectorAll('tbody tr').forEach(tr=>{const c0=tr.children[0],tg=!!(c0&&c0.tagName==='TD'&&!(c0.colSpan>1)&&hs[0]===''&&c0.querySelector('button')&&tr.children.length>2);if(c0){if(tg!==c0.hasAttribute('data-tg'))tg?c0.setAttribute('data-tg','1'):c0.removeAttribute('data-tg')}if(tr.children[1]&&(tg!==tr.children[1].hasAttribute('data-name')))tg?tr.children[1].setAttribute('data-name','1'):tr.children[1].removeAttribute('data-name');let i=0;[...tr.children].forEach(td=>{const sp=td.colSpan||1,l=sp>1?'':(hs[i]||'');if(td.getAttribute('data-label')!==l)td.setAttribute('data-label',l);if(sp>1){if(!td.hasAttribute('data-span'))td.setAttribute('data-span','1')}else if(td.hasAttribute('data-span'))td.removeAttribute('data-span');i+=sp})})})},run=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(lab)};
+ useEffect(()=>{let raf=0;const lab=()=>{document.querySelectorAll('main table').forEach(t=>{const hs=[...t.querySelectorAll('thead th')].map(h=>(h.textContent||'').trim());const kp=!hs.length||(hs.filter(Boolean).length<=4&&hs[0]!==''&&!t.classList.contains('acc'));if(kp!==t.hasAttribute('data-keep'))kp?t.setAttribute('data-keep','1'):t.removeAttribute('data-keep');if(!hs.length)return;t.querySelectorAll('tbody tr').forEach(tr=>{const c0=tr.children[0],tg=!!(c0&&c0.tagName==='TD'&&!(c0.colSpan>1)&&hs[0]===''&&c0.querySelector('button')&&tr.children.length>2);if(c0){if(tg!==c0.hasAttribute('data-tg'))tg?c0.setAttribute('data-tg','1'):c0.removeAttribute('data-tg')}if(tr.children[1]&&(tg!==tr.children[1].hasAttribute('data-name')))tg?tr.children[1].setAttribute('data-name','1'):tr.children[1].removeAttribute('data-name');let i=0;[...tr.children].forEach(td=>{const sp=td.colSpan||1,l=sp>1?'':(hs[i]||'');if(td.getAttribute('data-label')!==l)td.setAttribute('data-label',l);if(sp>1){if(!td.hasAttribute('data-span'))td.setAttribute('data-span','1')}else if(td.hasAttribute('data-span'))td.removeAttribute('data-span');i+=sp})})})},run=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(lab)};
   run();const mo=new MutationObserver(run);mo.observe(document.body,{childList:true,subtree:true});return()=>{mo.disconnect();cancelAnimationFrame(raf)}},[]);
  const [lg,setLg]=useState(()=>{try{const x=sLoad();return!(x.url&&x.u&&x.k)}catch(e){return true}});
  const sOk=()=>!!(syR.current.url&&syR.current.u&&syR.current.k);
- const onLogin=async c=>{try{localStorage.removeItem('veltrix_local')}catch(e){}cfR.current=false;setSy({url:c.url,u:c.u,k:c.k,rem:c.rem,rev:0,h:'',auto:true});setLg(false);await doLoad(false);if(cfR.current)setTab('set')};
+ const onLogin=async c=>{try{localStorage.removeItem('veltrix_local')}catch(e){}cfR.current=false;setSy({url:c.url,u:c.u,k:c.k,rem:c.rem,...SYR0,h:'',auto:true});setLg(false);await doLoad(false);if(cfR.current)setTab('set')};
  const hasLocal=()=>{const x=dRef.current;return x.tx.length+x.accs.length+x.ins.length+x.debt.length+(x.fund||[]).length>0};
- const isDirty=()=>hs(dRef.current)!==syR.current.h;
- const applyRemote=r=>{try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}const nd=mig(r.data);setD(nd);setSy({rev:r.rev,h:hs(nd),last:r.savedAt})};
+ const hasMine=p=>p.tx.length+p.accs.length+p.ins.length+p.debt.length+(p.fund||[]).length>0;
+ const dirt=()=>{const s0=syR.current,sp=splitD(dRef.current,s0.u);return{sp,m:hs(sp.mine)!==s0.hm&&(s0.rm>0||hasMine(sp.mine)||JSON.stringify(sp.mine.set)!==JSON.stringify(INIT.set)),s:hs(sp.shared)!==s0.hss&&(s0.rs>0||hasItems(sp.shared))}};
+ const isDirty=()=>{const x=dirt();return x.m||x.s};
+ const partsOf=f=>({fa:f===true,fm:f===true||(Array.isArray(f)&&f.indexOf('mine')>=0),fs:f===true||(Array.isArray(f)&&f.indexOf('shared')>=0)});
  const doPing=async()=>{if(!sOk())return setSs({st:'err',msg:'Isi URL, nama pengguna, dan kunci dulu.'});setSs({st:'busy',msg:'Mengetes koneksi…'});
   try{const r=await gsCall(syR.current,'ping');setSs(r.ok?{st:'ok',msg:'Terhubung sebagai '+r.user+'.'}:{st:'err',msg:r.message||'Gagal terhubung.'})}catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}};
- const doLoad=async force=>{if(!sOk()||bz.current)return;bz.current=true;setSs({st:'busy',msg:'Mengambil dari Drive…'});
-  try{const r=await gsCall(syR.current,'load');
-   if(!r.ok)setSs({st:'err',msg:r.message||'Gagal mengambil data.'});
-   else if(r.empty)setSs({st:'idle',msg:'Drive masih kosong. Klik "Simpan ke Drive" untuk mengisinya.'});
-   else if(r.rev===syR.current.rev&&!force)setSs({st:'ok',msg:'Sudah yang terbaru (rev '+r.rev+').'});
-   else if(!force&&((syR.current.rev>0&&isDirty())||(syR.current.rev===0&&hasLocal()))){cfR.current=true;setSs({st:'conflict',msg:'Data di perangkat ini dan di Drive sama-sama berbeda.',remote:{rev:r.rev,savedAt:r.savedAt,by:r.by}})}
-   else{applyRemote(r);setSs({st:'ok',msg:'Data dari Drive dimuat (rev '+r.rev+').'})}
-  }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}};
- const doSave=async force=>{if(!sOk()||bz.current)return;bz.current=true;setSs({st:'busy',msg:'Menyimpan ke Drive…'});
-  try{const snap=dRef.current,r=await gsCall(syR.current,'save',{base:force?-1:syR.current.rev,data:snap});
-   if(r.ok){setSy({rev:r.rev,h:hs(snap),last:r.savedAt});setSs({st:'ok',msg:'Tersimpan ke Drive (rev '+r.rev+').'})}
-   else if(r.conflict)setSs({st:'conflict',msg:'Data di Drive lebih baru dari data di perangkat ini.',remote:{rev:r.rev,savedAt:r.savedAt,by:r.by}});
-   else setSs({st:'err',msg:r.message||'Gagal menyimpan.'})
+ const OLD='Script Google Drive belum diperbarui. Tempel versi .gs terbaru lalu Deploy versi baru.';
+ const doLoad=async(force,quiet)=>{if(!sOk()||bz.current)return;bz.current=true;let mg=false;if(!quiet)setSs({st:'busy',msg:'Mengambil dari Drive…'});
+  try{const r=await gsCall(syR.current,'dbload'),s0=syR.current,u=s0.u;
+   if(!r.ok)setSs({st:'err',msg:r.error==='action'?OLD:(r.message||'Gagal mengambil data.')});
+   else if(r.empty){
+    if(r.legacy&&(!hasLocal()||(!s0.h&&confirm('Ditemukan data lama di Drive (disimpan '+new Date(r.legacy.savedAt).toLocaleString('id-ID')+').\nOK = pindahkan data lama itu ke database baru.\nBatal = pakai data yang ada di perangkat ini.')))){
+     try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}
+     const nd=ensureCats(mig(r.legacy.data));dRef.current=nd;setD(nd);setSy({...SYR0});mg=true;setSs({st:'ok',msg:'Data lama dipindahkan ke database baru.'})}
+    else if(r.legacy){setSy({...SYR0});mg=true;setSs({st:'ok',msg:'Memindahkan data perangkat ini ke database baru…'})}
+    else setSs({st:'idle',msg:'Drive masih kosong. Klik "Simpan ke Drive" untuk mengisinya.'})}
+   else{
+    const {fm,fs}=partsOf(force),sp=splitD(dRef.current,u),chM=r.rm!==s0.rm,chS=r.rs!==s0.rs;
+    if(!chM&&!chS&&!force){if(!quiet)setSs({st:'ok',msg:'Sudah yang terbaru.'})}
+    else{
+     const dirM=s0.rm>0?hs(sp.mine)!==s0.hm:hasMine(sp.mine),dirS=s0.rs>0?hs(sp.shared)!==s0.hss:hasItems(sp.shared);
+     const cm=chM&&r.mine.data&&dirM&&!fm,cs=chS&&r.shared.data&&dirS&&!fs;
+     if(cm||cs){cfR.current=true;setSs({st:'conflict',msg:'Data di perangkat ini dan di Drive sama-sama berbeda.',remote:{parts:[cm?'mine':'',cs?'shared':''].filter(Boolean),savedAt:cs?r.shared.savedAt:r.mine.savedAt,by:cs?r.shared.by:u}})}
+     else{
+      try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}
+      const aM=(chM||fm)&&r.mine.data,aS=(chS||fs)&&r.shared.data,nd=composeD(aM?r.mine.data:sp.mine,aS?r.shared.data:sp.shared,u),sn=splitD(nd,u);
+      dRef.current=nd;setD(nd);
+      setSy({rm:r.rm,rs:r.rs,hm:aM?hs(sn.mine):s0.hm,hss:aS?hs(sn.shared):s0.hss,last:(r.shared.savedAt>r.mine.savedAt?r.shared.savedAt:r.mine.savedAt)||s0.last});
+      setSs({st:'ok',msg:'Data dari Drive dimuat.'})}}}
+  }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}
+  if(mg)setTimeout(()=>doSave(false),300)};
+ const doSave=async force=>{if(!sOk()||bz.current)return;
+  const s0=syR.current,sn=dRef.current,sp=splitD(sn,s0.u),{fm,fs}=partsOf(force),x=dirt(),sM=x.m||fm,sS=x.s||fs;
+  if(!sM&&!sS){setSs({st:'ok',msg:'Semua sudah tersimpan di Drive.'});return}
+  bz.current=true;setSs({st:'busy',msg:'Menyimpan ke Drive…'});
+  try{const ex={};if(sM){ex.mine=sp.mine;ex.bm=fm?-1:s0.rm}if(sS){ex.shared=sp.shared;ex.bs=fs?-1:s0.rs}
+   const r=await gsCall(s0,'dbsave',ex);
+   if(r.ok){setSy({...(sM?{rm:r.rm,hm:hs(sp.mine)}:{}),...(sS?{rs:r.rs,hss:hs(sp.shared)}:{}),last:r.savedAt});setSs({st:'ok',msg:'Tersimpan ke Drive.'})}
+   else if(r.conflict){cfR.current=true;setSs({st:'conflict',msg:'Data di Drive lebih baru dari data di perangkat ini.',remote:{parts:r.parts,savedAt:r.savedAt,by:r.by}})}
+   else setSs({st:'err',msg:r.error==='old'||r.error==='action'?OLD:(r.message||'Gagal menyimpan.')})
   }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}};
  const doLogout=async()=>{if(!confirm('Keluar dari akun ini?\nData tetap aman di Google Drive. Data di perangkat ini akan dihapus.'))return;
   if(sOk()&&isDirty()){await doSave(false);if(isDirty()&&!confirm('Perubahan terakhir belum tersimpan ke Drive. Tetap keluar dan buang perubahan itu?'))return}
@@ -1029,8 +1100,8 @@ function App(){
   try{const r=await gsCall(syR.current,'ganti',{nk});if(r.ok){setSy({k:nk});a.value='';b.value='';setSs({st:'ok',msg:'Kunci berhasil diganti. Di perangkat lain, masuk lagi memakai kunci baru.'})}else setSs({st:'err',msg:r.error==='action'?'Script Google Drive belum diperbarui. Tempel versi .gs terbaru lalu Deploy versi baru.':(r.message||'Gagal mengganti kunci.')})}catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}};
  useEffect(()=>{if(!sOk()||!syR.current.auto||ssR.current.st==='conflict'||!isDirty())return;clearTimeout(tm.current);tm.current=setTimeout(()=>{if(bz.current){tm.current=setTimeout(()=>doSave(false),4000);return}doSave(false)},4000);return()=>clearTimeout(tm.current)},[d]);
  useEffect(()=>{if(sOk()&&syR.current.auto)doLoad(false);
-  const vis=()=>{if(document.visibilityState==='visible'&&sOk()&&syR.current.auto&&ssR.current.st!=='conflict'&&!isDirty())doLoad(false)},on=()=>{if(sOk()&&syR.current.auto&&ssR.current.st!=='conflict'&&isDirty())doSave(false)};
-  document.addEventListener('visibilitychange',vis);window.addEventListener('online',on);return()=>{document.removeEventListener('visibilitychange',vis);window.removeEventListener('online',on)}},[]);
+  const vis=()=>{if(document.visibilityState==='visible'&&sOk()&&syR.current.auto&&ssR.current.st!=='conflict')doLoad(false,true)},on=()=>{if(sOk()&&syR.current.auto&&ssR.current.st!=='conflict'&&isDirty())doSave(false)};
+  document.addEventListener('visibilitychange',vis);window.addEventListener('online',on);const iv=setInterval(vis,60000);return()=>{clearInterval(iv);document.removeEventListener('visibilitychange',vis);window.removeEventListener('online',on)}},[]);
  const add=k=>o=>setD(x=>({...x,[k]:[...x[k],o]})),del=k=>id=>setD(x=>({...x,[k]:x[k].filter(i=>i.id!==id)})),
   edit=(k,id,p)=>setD(x=>({...x,[k]:x[k].map(i=>i.id===id?{...i,...p}:i)})),ask=m=>num(prompt(m)||0);
  const now=new Date(),ym=now.getFullYear()+'-'+pad(now.getMonth()+1);
@@ -1163,15 +1234,15 @@ function App(){
    {d.ast.map(c=><div key={c} className="row" style={{margin:'3px 0',flexWrap:'nowrap'}}><span style={{flex:3}}>{c}</span><button className="g" style={{flex:'0 0 auto',minWidth:0}} onClick={()=>renAst(c)}>Ubah nama</button>
     <button className="g" style={{flex:'0 0 auto',minWidth:0,color:'var(--loss)'}} onClick={()=>delAst(c)}>Hapus</button></div>)}</Card>
   <Card t="Sinkronisasi Google Drive" c="c12"><p className="mu">Simpan data ke Google Drive lewat Apps Script supaya sama di semua perangkat. Tempel URL aplikasi web dan kunci dari script-mu. Kunci itu rahasia, jangan dibagikan.</p>
-   <div className="row"><label><span className="lbl">URL aplikasi web (berakhiran /exec)</span><input defaultValue={sy.url} placeholder="https://script.google.com/macros/s/…/exec" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.url&&setSy({url:v,rev:0,h:''})}}/></label>
-    <label><span className="lbl">Nama pengguna</span><input defaultValue={sy.u} placeholder="mis. sutina" onBlur={e=>{const v=e.target.value.trim().toLowerCase();v!==syR.current.u&&setSy({u:v,rev:0,h:''})}}/></label>
-    <label><span className="lbl">Kunci</span><input type="password" defaultValue={sy.k} placeholder="kunci dari log Apps Script" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.k&&setSy({k:v,rev:0,h:''})}}/></label></div>
+   <div className="row"><label><span className="lbl">URL aplikasi web (berakhiran /exec)</span><input defaultValue={sy.url} placeholder="https://script.google.com/macros/s/…/exec" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.url&&setSy({url:v,...SYR0,h:''})}}/></label>
+    <label><span className="lbl">Nama pengguna</span><input defaultValue={sy.u} placeholder="mis. sutina" onBlur={e=>{const v=e.target.value.trim().toLowerCase();v!==syR.current.u&&setSy({u:v,...SYR0,h:''})}}/></label>
+    <label><span className="lbl">Kunci</span><input type="password" defaultValue={sy.k} placeholder="kunci dari log Apps Script" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.k&&setSy({k:v,...SYR0,h:''})}}/></label></div>
    <label style={{display:'block',margin:'6px 0'}}><input type="checkbox" checked={!!sy.auto} style={{width:'auto',marginRight:6}} onChange={e=>setSy({auto:e.target.checked})}/>Simpan otomatis ke Drive setelah ada perubahan</label>
    <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'8px 0'}}><button className="g" onClick={doPing}>Tes koneksi</button><button className="g" onClick={()=>doLoad(false)}>Ambil dari Drive</button><button className="b" onClick={()=>doSave(false)}>Simpan ke Drive</button>
 </div>
    {ss.msg&&<div className="mu" role="status" style={{color:ss.st==='err'?'var(--loss)':undefined}}>{ss.msg}{sy.last&&ss.st!=='busy'?' Terakhir tersimpan: '+new Date(sy.last).toLocaleString('id-ID')+'.':''}</div>}
-   {ss.st==='conflict'&&<div style={{background:'#fff0b8',borderRadius:12,padding:10,margin:'8px 0'}}><b>Pilih data mana yang dipakai</b><div className="mu" style={{fontSize:12}}>Drive: versi {ss.remote&&ss.remote.rev}{ss.remote&&ss.remote.savedAt?', disimpan '+new Date(ss.remote.savedAt).toLocaleString('id-ID'):''}{ss.remote&&ss.remote.by?' oleh '+ss.remote.by:''}. Yang tidak dipilih akan tertimpa (cadangan otomatis tetap ada).</div>
-    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:6}}><button className="b" onClick={()=>{if(confirm('Pakai data dari Drive dan timpa data di perangkat ini?'))doLoad(true)}}>Pakai data Drive</button><button className="g" onClick={()=>{if(confirm('Pakai data di perangkat ini dan timpa data di Drive?'))doSave(true)}}>Pakai data perangkat ini</button></div></div>}</Card>
+   {ss.st==='conflict'&&<div style={{background:'#fff0b8',borderRadius:12,padding:10,margin:'8px 0'}}><b>Pilih data mana yang dipakai</b><div className="mu" style={{fontSize:12}}>Bagian: {ss.remote&&(ss.remote.parts||[]).map(x=>x==='shared'?'Bersama':'Pribadi').join(' + ')}{ss.remote&&ss.remote.savedAt?', disimpan '+new Date(ss.remote.savedAt).toLocaleString('id-ID'):''}{ss.remote&&ss.remote.by?' oleh '+ss.remote.by:''}. Yang tidak dipilih akan tertimpa (cadangan otomatis tetap ada).</div>
+    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:6}}><button className="b" onClick={()=>{if(confirm('Pakai data dari Drive dan timpa data di perangkat ini?'))doLoad((ss.remote&&ss.remote.parts)||true)}}>Pakai data Drive</button><button className="g" onClick={()=>{if(confirm('Pakai data di perangkat ini dan timpa data di Drive?'))doSave((ss.remote&&ss.remote.parts)||true)}}>Pakai data perangkat ini</button></div></div>}</Card>
   <Card t="Cadangan data"><p className="mu">Data tersimpan di browser ini. Unduh cadangan secara berkala, dan simpan file-nya di tempat aman.</p>
    <button className="b" onClick={bk}>Unduh cadangan (.json)</button> <label className="g" style={{display:'inline-block',padding:'8px 14px'}}>Pulihkan dari cadangan<input type="file" accept=".json" onChange={imp} style={{display:'none'}}/></label>
    <button className="g" style={{color:'var(--loss)',padding:'8px 14px'}} onClick={()=>confirm('Hapus SEMUA data? Pastikan sudah punya cadangan.')&&setD(INIT)}>Hapus semua data</button></Card></div>};
