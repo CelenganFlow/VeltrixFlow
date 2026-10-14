@@ -130,6 +130,7 @@ const mig=s=>{const o={...INIT,...s,set:{...INIT.set,...s.set},...(s.catv>=2?{}:
 const SKEY='veltrix_sync_v1',SY0={url:'',u:'',k:'',rev:0,h:'',auto:true,last:'',rem:true};
 const sLoad=()=>{try{return{...SY0,...JSON.parse(localStorage.getItem(SKEY)||sessionStorage.getItem(SKEY)||'{}')}}catch(e){return{...SY0}}};
 const hs=o=>{const t=JSON.stringify(o);let x=0;for(let i=0;i<t.length;i++)x=(x*31+t.charCodeAt(i))|0;return x+':'+t.length};
+const DEFAULT_URL='https://script.google.com/macros/s/AKfycbzMDp-1fes0kNcs-TC8N8mItCNFS9P3g2zMJZafyxz1_oBGL6jtIjLhvJzc7RqAzB1_/exec';
 const gsCall=async(sy,action,extra)=>{const r=await fetch(sy.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,u:sy.u,k:sy.k,...extra}),redirect:'follow'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
 const load=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));return s?mig(s):INIT}catch(e){return INIT}};
 const sum=(t,ty)=>t.filter(x=>x.type===ty).reduce((s,x)=>s+x.amt,0);
@@ -948,9 +949,11 @@ function CashFlow({d,setD,bal}){
    <button className="b">{f.type==='tf'?'Simpan transfer':'Simpan transaksi'}</button>{msg&&<p className="gain" role="status" style={{margin:0,fontSize:13}}>{msg}</p>}</form></Card></div>}
 
 function Login({sy0,onDone}){
- const [f,setF]=useState({url:sy0.url||'',u:sy0.u||'',k:'',rem:sy0.rem!==false}),[m,setM]=useState(''),[bz,setBz]=useState(false);
- const go=async e=>{e.preventDefault();const url=f.url.trim(),u=f.u.trim().toLowerCase(),k=f.k.trim();
-  if(!url)return setM('Isi alamat Drive (URL berakhiran /exec) di bagian "Alamat Drive".');if(!u||!k)return setM('Isi nama pengguna dan kunci.');
+ const [f,setF]=useState({u:sy0.u||'',k:'',rem:sy0.rem!==false}),[m,setM]=useState(''),[bz,setBz]=useState(false),[fg,setFg]=useState(false),[fu,setFu]=useState(sy0.u||'');
+ const url0=sy0.url||DEFAULT_URL;
+ const doReset=async()=>{const u=fu.trim().toLowerCase();if(!u)return setM('Isi nama pengguna dulu.');setBz(true);setM('');try{const r=await gsCall({url:url0},'reset',{u});if(r.ok)setM('✓ '+r.message);else setM(r.message==='Aksi tidak dikenal.'||r.error==='action'?'Fitur reset belum aktif di server Drive. Hubungi pemilik aplikasi.':(r.message||'Gagal mengirim.'))}catch(x){setM('Tidak bisa terhubung. Cek internet.')}finally{setBz(false)}};
+ const go=async e=>{e.preventDefault();const url=url0,u=f.u.trim().toLowerCase(),k=f.k.trim();
+  if(!u||!k)return setM('Isi nama pengguna dan kunci.');
   setBz(true);setM('');
   try{const r=await gsCall({url,u,k},'ping');if(r.ok)onDone({url,u,k,rem:f.rem});else setM(r.message||'Nama pengguna atau kunci salah.')}catch(x){setM('Tidak bisa terhubung ke Drive. Cek internet dan alamat Drive.')}finally{setBz(false)}};
  return <div className="lg"><div className="dc" style={{right:-90,top:-100,width:330,height:330,background:'#FFE08A'}}/><div className="dc" style={{left:-110,bottom:-130,width:420,height:420,background:'#14b8a6',opacity:.9}}/><div className="dc" style={{left:300,bottom:-70,width:210,height:210,background:'#ffd6cb'}}/>
@@ -976,10 +979,13 @@ function Login({sy0,onDone}){
    <h2 style={{margin:'0 0 4px',fontSize:28,fontWeight:800,textAlign:'center'}}>Selamat datang</h2><p style={{margin:'0 0 20px',fontSize:15,color:'#3f6670',textAlign:'center'}}>Masuk untuk melihat keuanganmu.</p>
    <label className="t" htmlFor="lg-u">Nama pengguna</label><input id="lg-u" className="i" type="text" autoComplete="username" placeholder="mis. sutina" value={f.u} onChange={e=>setF({...f,u:e.target.value})}/>
    <label className="t" htmlFor="lg-k">Kunci</label><input id="lg-k" className="i" type="password" autoComplete="current-password" placeholder="Tempel kunci rahasiamu" value={f.k} onChange={e=>setF({...f,k:e.target.value})}/>
-   <details open={!sy0.url} style={{marginBottom:12}}><summary style={{cursor:'pointer',fontSize:14,fontWeight:700,marginBottom:8}}>Alamat Drive</summary><input className="i" type="url" aria-label="Alamat Drive" placeholder="https://script.google.com/macros/s/…/exec" value={f.url} onChange={e=>setF({...f,url:e.target.value})} style={{marginBottom:0}}/></details>
    <label style={{display:'flex',alignItems:'center',gap:8,fontSize:14,marginBottom:16}}><input type="checkbox" checked={f.rem} onChange={e=>setF({...f,rem:e.target.checked})} style={{width:18,height:18,accentColor:'#0d7f74',margin:0}}/> Ingat di perangkat ini</label>
-   {m&&<div role="alert" style={{background:'#ffd9d0',color:'#8a2d08',borderRadius:12,padding:'8px 12px',fontSize:13,fontWeight:700,marginBottom:12}}>{m}</div>}
+   {m&&<div role="alert" style={{background:m[0]==='✓'?'#d6f5e3':'#ffd9d0',color:m[0]==='✓'?'#0f5c3a':'#8a2d08',borderRadius:12,padding:'8px 12px',fontSize:13,fontWeight:700,marginBottom:12}}>{m}</div>}
    <button type="submit" className="lg-go" disabled={bz}>{bz?'Memeriksa…':'Masuk'}</button>
+   <button type="button" className="lg-skip" onClick={()=>{setFg(!fg);setM('');if(!fu)setFu(f.u)}}>Lupa kunci?</button>
+   {fg&&<div style={{background:'#f4fbf9',border:'2px solid #cfe6e2',borderRadius:16,padding:12,margin:'6px 0 4px'}}><p style={{margin:'0 0 8px',fontSize:13,color:'#2f5f6b'}}>Kunci baru akan dikirim ke email yang terdaftar untuk nama pengguna ini. Kunci lama langsung tidak berlaku.</p>
+    <input className="i" type="text" aria-label="Nama pengguna untuk reset" placeholder="Nama pengguna" value={fu} onChange={e=>setFu(e.target.value)} style={{marginBottom:8}}/>
+    <button type="button" className="lg-go" style={{height:44,fontSize:15,width:'100%'}} disabled={bz} onClick={doReset}>{bz?'Mengirim…':'Kirim kunci baru ke email'}</button></div>}
    <p style={{margin:'8px 0 0',fontSize:13,color:'#4b6a73',textAlign:'center'}}>Data tersimpan di Google Drive milikmu sendiri.</p>
   </form></div></div>}
 
