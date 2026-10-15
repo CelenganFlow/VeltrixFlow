@@ -1058,11 +1058,13 @@ function App(){
  const doLoad=async(force,quiet)=>{if(!sOk()||bz.current)return;bz.current=true;let mg=false;if(!quiet)setSs({st:'busy',msg:'Mengambil dari Drive…'});
   try{const r=await gsCall(syR.current,'dbload'),s0=syR.current,u=s0.u;
    if(!r.ok)setSs({st:'err',msg:r.error==='action'?OLD:(r.message||'Gagal mengambil data.')});
+   else if(r.legacy&&!r.mine.data&&(!hasMine(splitD(dRef.current,u).mine)||(!s0.h&&confirm('Ditemukan data lama di Drive (disimpan '+new Date(r.legacy.savedAt).toLocaleString('id-ID')+').\nOK = pindahkan data lama itu ke database baru.\nBatal = pakai data yang ada di perangkat ini.')))){
+    try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}
+    const lg=ensureCats(mig(r.legacy.data));let nd=lg,rs=0;
+    if(r.shared.data){const ls=splitD(lg,u),ss=r.shared.data,sh={};SHK.forEach(k=>{const have={};(ss[k]||[]).forEach(o=>{have[o.id]=1});sh[k]=[...(ss[k]||[]),...ls.shared[k].filter(o=>!have[o.id])]});nd=composeD(ls.mine,sh,u);rs=r.rs}
+    dRef.current=nd;setD(nd);setSy({...SYR0,rs});mg=true;setSs({st:'ok',msg:'Data lama dipindahkan ke database baru.'})}
    else if(r.empty){
-    if(r.legacy&&(!hasLocal()||(!s0.h&&confirm('Ditemukan data lama di Drive (disimpan '+new Date(r.legacy.savedAt).toLocaleString('id-ID')+').\nOK = pindahkan data lama itu ke database baru.\nBatal = pakai data yang ada di perangkat ini.')))){
-     try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}
-     const nd=ensureCats(mig(r.legacy.data));dRef.current=nd;setD(nd);setSy({...SYR0});mg=true;setSs({st:'ok',msg:'Data lama dipindahkan ke database baru.'})}
-    else if(r.legacy){setSy({...SYR0});mg=true;setSs({st:'ok',msg:'Memindahkan data perangkat ini ke database baru…'})}
+    if(r.legacy){setSy({...SYR0});mg=true;setSs({st:'ok',msg:'Memindahkan data perangkat ini ke database baru…'})}
     else setSs({st:'idle',msg:'Drive masih kosong. Klik "Simpan ke Drive" untuk mengisinya.'})}
    else{
     const {fm,fs}=partsOf(force),sp=splitD(dRef.current,u),chM=r.rm!==s0.rm,chS=r.rs!==s0.rs;
