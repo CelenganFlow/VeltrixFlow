@@ -591,6 +591,7 @@ function DebtPage({d,setD,bal,req,clearReq}){
  const saveFm=e=>{e.preventDefault();const k=fm.kind;
   if(!fm.name.trim())return alert('Isi nama.');if(!(num(fm.p0)>=0)||fm.p0==='')return alert(k==='kartu'?'Isi tagihan atau saldo terutang saat ini (boleh 0).':'Isi sisa pokok saat ini.');
   if(k==='kartu'&&!(num(fm.limit)>0))return alert('Isi limit kartu.');
+  if(k==='kartu'&&fm.own==='Bersama'){if(fm.my0==='')return alert('Isi bagian saya dari saldo (Rp). Isi 0 kalau seluruhnya bagian pasangan.');if(num(fm.my0)>num(fm.p0))return alert('Bagian saya tidak boleh lebih besar dari saldo.')}
   const du=num(fm.due);if(fm.due!==''&&(du<1||du>31))return alert('Tanggal jatuh tempo harus 1 sampai 31.');
   const o={cat:fm.cat,own:fm.own,share:fm.own==='Bersama'?shIn(fm.share):100,name:fm.name.trim(),lender:fm.lender.trim(),p0:num(fm.p0),due:du||0,start:fm.start,
    ...(k==='utang'?{p00:num(fm.p00)||num(fm.p0),tenor:num(fm.tenor),done:num(fm.done),inst:num(fm.inst),rate:num(fm.rate),ecat:fm.ecat||'',kart:fm.kart||''}:{limit:num(fm.limit),bill:num(fm.bill),inst:0,my0:fm.own==='Bersama'&&fm.my0!==''?Math.min(Math.max(num(fm.my0),0),num(fm.p0)):undefined})};
@@ -622,13 +623,14 @@ function DebtPage({d,setD,bal,req,clearReq}){
    return{...s,cout:s.cout.includes('Bunga & denda')||!(it>0)?s.cout:[...s.cout,'Bunga & denda'],tx,debt:s.debt.map(i=>i.id===x.id?{...i,pay:i.pay.map(q=>q.id===p.id?{...q,date:ep.date,amt,mine,int:it,acc:by==='pasangan'?'':ep.acc,tid2,note:ep.note.trim()}:q)}:i)}});setEp(null)};
  const billDate=(x,dt)=>{if(!(x.bill>0)||!dt)return dt;const y=+dt.slice(0,4);let m=+dt.slice(5,7)-1;if(+dt.slice(8,10)>x.bill)m++;return ymd(new Date(y,m,Math.min(x.bill,new Date(y,m+1,0).getDate())))};
  const defCat=d.cout.includes('Lainnya')?'Lainnya':(d.cout[0]||'');
+ const shOf=(st,amt)=>st.shm==='n'?Math.min(100,Math.max(0,num(st.mine)/amt*100)):shIn(st.sh);
  const newBf=x=>({mode:'add',id:x.id,date:td,bdate:billDate(x,td),amt:'',ten:'',note:'',cat:defCat,sh:'50'});
  const saveBf=st=>{const x=d.debt.find(i=>i.id===st.id),amt=num(st.amt),ten=Math.round(num(st.ten))||0;
-  if(!st.date||!st.bdate)return alert('Isi tanggal belanja dan tanggal masuk tagihan.');if(!(amt>0))return alert('Isi nominal belanja.');if(!st.cat)return alert('Pilih kategori biaya.');if(ten<0||ten===1)return alert('Cicilan minimal 2 bulan. Kosongkan kalau dibayar sekali.');
+  if(!st.date||!st.bdate)return alert('Isi tanggal belanja dan tanggal masuk tagihan.');if(!(amt>0))return alert('Isi nominal belanja.');if(!st.cat)return alert('Pilih kategori biaya.');if(x.own==='Bersama'&&st.shm==='n'&&(st.mine===''||st.mine==null||num(st.mine)<0||num(st.mine)>amt))return alert('Bagian saya (Rp) harus antara 0 dan nominal belanja.');if(ten<0||ten===1)return alert('Cicilan minimal 2 bulan. Kosongkan kalau dibayar sekali.');
   const old=st.mode==='edit'?((x.buy||[]).find(b=>b.id===st.bid)||{amt:0}):{amt:0};
   if(x.limit>0&&usedOf(d,x)-old.amt+amt>x.limit&&!confirm('Dengan belanja ini pemakaian kartu ('+$(usedOf(d,x)-old.amt+amt)+') melebihi limit ('+$(x.limit)+'). Tetap simpan?'))return;
-  if(st.mode==='add'){setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:[...(i.buy||[]),{id:uid(),date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shIn(st.sh)}:{})}]}:i)}));setBf(null)}
-  else{setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).map(b=>b.id===st.bid?{...b,date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shIn(st.sh)}:{})}:b)}:i)}));setEb(null)}};
+  if(st.mode==='add'){setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:[...(i.buy||[]),{id:uid(),date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shOf(st,amt)}:{})}]}:i)}));setBf(null)}
+  else{setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).map(b=>b.id===st.bid?{...b,date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shOf(st,amt)}:{})}:b)}:i)}));setEb(null)}};
  const delBf=(x,b)=>{if(confirm('Hapus belanja ini? Sisa limit kembali seperti sebelum dicatat.'))setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).filter(q=>q.id!==b.id)}:i)}))};
  const BfRow=(st,setSt,x)=><form className="row" style={{margin:0,background:'#D5F1EB',borderRadius:12,padding:10}} onSubmit={e=>{e.preventDefault();saveBf(st)}}>
   <label style={{display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Tanggal belanja<input type="date" value={st.date} onChange={e=>setSt({...st,date:e.target.value,bdate:billDate(x,e.target.value)})}/></label>
@@ -637,7 +639,9 @@ function DebtPage({d,setD,bal,req,clearReq}){
   <input placeholder="Cicilan (berapa bulan, kosong = sekali bayar)" inputMode="numeric" value={st.ten} onChange={e=>setSt({...st,ten:e.target.value})}/>
   <select value={st.cat} title="Kategori biaya" onChange={e=>{if(e.target.value==='__new'){const n=newEc();n&&setSt({...st,cat:n})}else setSt({...st,cat:e.target.value})}}>{[...new Set([st.cat,...d.cout])].filter(Boolean).map(c=><option key={c}>{c}</option>)}<option value="__new">+ Kategori baru…</option></select>
   <input placeholder="Keterangan (mis. Tokopedia)" value={st.note} onChange={e=>setSt({...st,note:e.target.value})}/>
-  {x.own==='Bersama'&&ShareF(st.sh,v=>setSt({...st,sh:v}))}
+  {x.own==='Bersama'&&<><select value={st.shm==='n'?'n':String(st.sh)==='50'?'50':String(st.sh)==='100'?'100':String(st.sh)==='0'?'0':'x'} title="Pembagian biaya" style={{flexBasis:'100%'}} onChange={e=>{const v=e.target.value;if(v==='n')setSt({...st,shm:'n',mine:st.mine||ds(Math.round(num(st.amt)*shIn(st.sh)/100))});else if(v==='x')setSt({...st,shm:'',sh:'60'});else setSt({...st,shm:'',sh:v})}}><option value="50">Biaya dibagi dua (50/50)</option><option value="100">Saya yang menanggung penuh</option><option value="0">Pasangan yang menanggung penuh</option><option value="n">Isi nominal bagian saya (Rp)</option><option value="x">Atur persen sendiri</option></select>
+   {st.shm==='n'&&<input placeholder="Bagian saya (Rp)" inputMode="decimal" value={st.mine||''} onChange={e=>setSt({...st,mine:e.target.value})}/>}
+   {st.shm!=='n'&&!['50','100','0'].includes(String(st.sh))&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={st.sh} onChange={e=>setSt({...st,sh:e.target.value})}/>}</>}
   <button className="b" style={{flex:'0 0 auto'}}>Simpan</button><button type="button" className="g" style={{flex:'0 0 auto'}} onClick={()=>st.mode==='add'?setBf(null):setEb(null)}>Batal</button></form>;
  const delItem=x=>{if(!(x.pay||[]).length){if(confirm('Hapus "'+x.name+'"?'))setD(s=>({...s,debt:s.debt.filter(i=>i.id!==x.id)}));return}
   if(confirm('"'+x.name+'" sudah punya riwayat bayar, jadi akan diarsipkan (dipindah ke Lunas & arsip) supaya saldo akun tetap benar. Lanjutkan?'))setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,arch:true}:i)}))};
@@ -670,7 +674,7 @@ function DebtPage({d,setD,bal,req,clearReq}){
      {bf&&bf.id===x.id&&BfRow(bf,setBf,x)}
      {(x.buy||[]).length>0?<div style={{overflowX:'auto',marginTop:8}}><table className="tb t-mt"><thead><tr><th>Tgl belanja</th><th>Masuk tagihan</th><th>Keterangan</th><th>Kategori biaya</th><th style={{textAlign:'right'}}>Nominal</th><th>Cicilan</th><th/></tr></thead><tbody>
       {[...x.buy].sort((a,b)=>a.date.localeCompare(b.date)).map(b=>eb&&eb.bid===b.id?<tr key={b.id}><td colSpan="7">{BfRow(eb,setEb,x)}</td></tr>
-       :<tr key={b.id}><td style={{whiteSpace:'nowrap'}}>{b.date}</td><td style={{whiteSpace:'nowrap'}}>{b.bdate||b.date}</td><td>{b.note||'-'}{x.own==='Bersama'&&<div className="mu" style={{fontSize:12}}>Porsi saya {Math.round(bsh(b,x))}%</div>}</td><td>{b.cat?b.cat:<span className="tag r">Belum dihitung</span>}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(b.amt)}</td>
+       :<tr key={b.id}><td style={{whiteSpace:'nowrap'}}>{b.date}</td><td style={{whiteSpace:'nowrap'}}>{b.bdate||b.date}</td><td>{b.note||'-'}{x.own==='Bersama'&&<div className="mu" style={{fontSize:12}}>Porsi saya {$(Math.round(b.amt*bsh(b,x)/100))}{bsh(b,x)>0&&bsh(b,x)<100?' ('+Math.round(bsh(b,x))+'%)':''}</div>}</td><td>{b.cat?b.cat:<span className="tag r">Belum dihitung</span>}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(b.amt)}</td>
         <td style={{whiteSpace:'nowrap'}}>{b.ten>1?<>ke-{bKe(b)} dari {b.ten}<div className="mu" style={{fontSize:12}}>{$(b.amt/b.ten)}/bln</div></>:'Sekali bayar'}</td>
         <td style={{textAlign:'right'}}><Menu label="Aksi belanja" items={[{l:'Edit',fn:()=>setEb({mode:'edit',id:x.id,bid:b.id,date:b.date,bdate:b.bdate||b.date,amt:ds(b.amt),ten:b.ten>1?String(b.ten):'',note:b.note||'',cat:b.cat||defCat,sh:String(bsh(b,x))})},{l:'Hapus',danger:true,fn:()=>delBf(x,b)}]}/></td></tr>)}</tbody></table></div>
       :<p className="mu" style={{margin:'4px 0'}}>Belum ada belanja tercatat. Catat belanja supaya sisa limit selalu akurat.</p>}</div>}
@@ -712,7 +716,7 @@ function DebtPage({d,setD,bal,req,clearReq}){
   <input placeholder={fm.kind==='kartu'?'Bank / penerbit':'Pemberi pinjaman'} value={fm.lender} onChange={e=>setFm({...fm,lender:e.target.value})}/>
   {fm.kind==='kartu'?<><input placeholder="Limit kartu *" inputMode="decimal" value={fm.limit} onChange={e=>setFm({...fm,limit:e.target.value})}/>
     <input placeholder="Tagihan / saldo terutang sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
-    {fm.own==='Bersama'&&<label style={{flexBasis:'100%',display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Bagian saya dari saldo di atas (Rp). Kosongkan = separuh. Sisanya dianggap bagian pasangan.<input placeholder="mis. 700.000" inputMode="decimal" value={fm.my0} onChange={e=>setFm({...fm,my0:e.target.value})}/></label>}
+    {fm.own==='Bersama'&&<label style={{flexBasis:'100%',display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Bagian saya dari saldo di atas (Rp) *. Isi 0 kalau seluruhnya bagian pasangan. Sisanya dianggap bagian pasangan.<input placeholder="mis. 700.000" inputMode="decimal" value={fm.my0} onChange={e=>setFm({...fm,my0:e.target.value})}/></label>}
     <input placeholder="Tanggal cetak tagihan (1-31)" inputMode="numeric" value={fm.bill} onChange={e=>setFm({...fm,bill:e.target.value})}/></>
    :<><input placeholder="Sisa pokok sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
     <input placeholder="Pokok awal (opsional, untuk progres)" inputMode="decimal" value={fm.p00} onChange={e=>setFm({...fm,p00:e.target.value})}/>
