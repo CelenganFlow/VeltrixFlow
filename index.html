@@ -173,6 +173,16 @@ const ensureCats=o=>{
  const add=(k,v)=>{if(v&&o[k].indexOf(v)<0)o[k]=[...o[k],v]};
  o.tx.forEach(t=>{if(t.type==='out')add('cout',t.cat);else if(t.type==='in')add('cin',t.cat)});
  o.ins.forEach(i=>add('ast',i.cls));o.debt.forEach(x=>add(x.kind==='kartu'?'kcat':'dcat',x.cat));return o};
+const mergePart=(loc,rem)=>{
+ const out={...rem,...loc};
+ Object.keys(out).forEach(k=>{const a=loc[k],b=rem[k];
+  if(Array.isArray(a)&&Array.isArray(b)){
+   if(a.concat(b).every(x=>x&&typeof x==='object'&&x.id!==undefined)){const la={};a.forEach(x=>{la[x.id]=x});const seen={};out[k]=[...b.map(x=>{seen[x.id]=1;return la[x.id]||x}),...a.filter(x=>!seen[x.id])]}
+   else out[k]=[...b,...a.filter(x=>b.indexOf(x)<0)]}
+  else if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b))out[k]={...b,...a}});
+ return out};
+const DLB={accs:'akun',tx:'transaksi',pk:'kantong',ins:'investasi',debt:'utang/kartu',fund:'dana'};
+const diffSum=(a,b)=>{const add=[],del=[];Object.keys(DLB).forEach(k=>{const ia={},ib={};(a[k]||[]).forEach(x=>{ia[x.id]=1});(b[k]||[]).forEach(x=>{ib[x.id]=1});const n1=(b[k]||[]).filter(x=>!ia[x.id]).length,n2=(a[k]||[]).filter(x=>!ib[x.id]).length;if(n1)add.push(n1+' '+DLB[k]);if(n2)del.push(n2+' '+DLB[k])});return(add.length?' Masuk: '+add.join(', ')+'.':'')+(del.length?' Hilang dari perangkat: '+del.join(', ')+'.':'')};
 const composeD=(mine,shared,u)=>{
  const m=mig(mine||{}),S=shared||{};
  const fl=it=>(it.cr&&it.cr!==u)?flipSh(it):it;
@@ -716,7 +726,7 @@ function DebtPage({d,setD,bal,req,clearReq}){
   <input placeholder={fm.kind==='kartu'?'Bank / penerbit':'Pemberi pinjaman'} value={fm.lender} onChange={e=>setFm({...fm,lender:e.target.value})}/>
   {fm.kind==='kartu'?<><input placeholder="Limit kartu *" inputMode="decimal" value={fm.limit} onChange={e=>setFm({...fm,limit:e.target.value})}/>
     <input placeholder="Tagihan / saldo terutang sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
-    {fm.own==='Bersama'&&<label style={{flexBasis:'100%',display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Bagian saya dari saldo di atas (Rp) *. Isi 0 kalau seluruhnya bagian pasangan. Sisanya dianggap bagian pasangan.<input placeholder="mis. 700.000" inputMode="decimal" value={fm.my0} onChange={e=>setFm({...fm,my0:e.target.value})}/></label>}
+    {fm.own==='Bersama'&&<label style={{flexBasis:'100%',display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Bagian saya dari saldo di atas (Rp) *. Isi 0 kalau semuanya milik pasangan.<input placeholder="mis. 700.000" inputMode="decimal" value={fm.my0} onChange={e=>setFm({...fm,my0:e.target.value})}/></label>}
     <input placeholder="Tanggal cetak tagihan (1-31)" inputMode="numeric" value={fm.bill} onChange={e=>setFm({...fm,bill:e.target.value})}/></>
    :<><input placeholder="Sisa pokok sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
     <input placeholder="Pokok awal (opsional, untuk progres)" inputMode="decimal" value={fm.p00} onChange={e=>setFm({...fm,p00:e.target.value})}/>
@@ -1086,37 +1096,44 @@ function App(){
     else{
      const dirM=s0.rm>0?hs(sp.mine)!==s0.hm:hasMine(sp.mine),dirS=s0.rs>0?hs(sp.shared)!==s0.hss:hasItems(sp.shared);
      const cm=chM&&r.mine.data&&dirM&&!fm,cs=chS&&r.shared.data&&dirS&&!fs;
-     if(cm||cs){cfR.current=true;setSs({st:'conflict',msg:'Data di perangkat ini dan di Drive sama-sama berbeda.',remote:{parts:[cm?'mine':'',cs?'shared':''].filter(Boolean),savedAt:cs?r.shared.savedAt:r.mine.savedAt,by:cs?r.shared.by:u}})}
-     else{
+     {
       try{localStorage.setItem('veltrix_flow_prev',JSON.stringify(dRef.current))}catch(e){}
-      const aM=(chM||fm)&&r.mine.data,aS=(chS||fs)&&r.shared.data,nd=composeD(aM?r.mine.data:sp.mine,aS?r.shared.data:sp.shared,u),sn=splitD(nd,u);
+      const prevD=dRef.current,aM=(chM||fm)&&r.mine.data,aS=(chS||fs)&&r.shared.data,pm=cm?mergePart(sp.mine,r.mine.data):(aM?r.mine.data:sp.mine),ps=cs?mergePart(sp.shared,r.shared.data):(aS?r.shared.data:sp.shared),nd=composeD(pm,ps,u),sn=splitD(nd,u);
       dRef.current=nd;setD(nd);
-      setSy({rm:r.rm,rs:r.rs,hm:aM?hs(sn.mine):s0.hm,hss:aS?hs(sn.shared):s0.hss,last:(r.shared.savedAt>r.mine.savedAt?r.shared.savedAt:r.mine.savedAt)||s0.last});
-      setSs({st:'ok',msg:'Data dari Drive dimuat.'})}}}
+      setSy({rm:chM?r.rm:s0.rm,rs:chS?r.rs:s0.rs,hm:cm?'':(aM?hs(sn.mine):s0.hm),hss:cs?'':(aS?hs(sn.shared):s0.hss),last:(r.shared.savedAt>r.mine.savedAt?r.shared.savedAt:r.mine.savedAt)||s0.last});
+      setSs({st:'ok',msg:((cm||cs)?'Data perangkat digabung dengan Drive, tidak ada yang hilang. Menyimpan…':'Data dari Drive dimuat.')+diffSum(prevD,nd)})}}}
   }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}
   if(mg)setTimeout(()=>doSave(false),300)};
- const doSave=async force=>{if(!sOk()||bz.current)return;
+ const doSave=async force=>{if(!sOk()||bz.current)return;let cf=false;
   const s0=syR.current,sn=dRef.current,sp=splitD(sn,s0.u),{fm,fs}=partsOf(force),x=dirt(),sM=x.m||fm,sS=x.s||fs;
   if(!sM&&!sS){setSs({st:'ok',msg:'Semua sudah tersimpan di Drive.'});return}
   bz.current=true;setSs({st:'busy',msg:'Menyimpan ke Drive…'});
   try{const ex={};if(sM){ex.mine=sp.mine;ex.bm=fm?-1:s0.rm}if(sS){ex.shared=sp.shared;ex.bs=fs?-1:s0.rs}
    const r=await gsCall(s0,'dbsave',ex);
    if(r.ok){setSy({...(sM?{rm:r.rm,hm:hs(sp.mine)}:{}),...(sS?{rs:r.rs,hss:hs(sp.shared)}:{}),last:r.savedAt});setSs({st:'ok',msg:'Tersimpan ke Drive.'})}
-   else if(r.conflict){cfR.current=true;setSs({st:'conflict',msg:'Data di Drive lebih baru dari data di perangkat ini.',remote:{parts:r.parts,savedAt:r.savedAt,by:r.by}})}
+   else if(r.conflict){cf=true;setSs({st:'busy',msg:'Menggabungkan dengan data terbaru di Drive…'})}
    else setSs({st:'err',msg:r.error==='old'||r.error==='action'?OLD:(r.message||'Gagal menyimpan.')})
-  }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}};
+  }catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}finally{bz.current=false}
+  if(cf)setTimeout(()=>doLoad(false),100)};
+ const sl=ms=>new Promise(r=>setTimeout(r,ms)),waitBz=async()=>{for(let i=0;i<60&&bz.current;i++)await sl(200)};
  const doLogout=async()=>{if(!confirm('Keluar dari akun ini?\nData tetap aman di Google Drive. Data di perangkat ini akan dihapus.'))return;
-  if(sOk()&&isDirty()){await doSave(false);if(isDirty()&&!confirm('Perubahan terakhir belum tersimpan ke Drive. Tetap keluar dan buang perubahan itu?'))return}
-  try{[KEY,'veltrix_flow_prev',SKEY,'veltrix_local'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem(SKEY)}catch(e){}
+  if(sOk()&&isDirty()){clearTimeout(tm.current);setSs({st:'busy',msg:'Menyimpan sebelum keluar…'});
+   for(let i=0;i<3&&isDirty();i++){await waitBz();await doSave(false);await sl(400);await waitBz()}
+   if(isDirty()){const why=(ssR.current.msg||'tidak diketahui').replace(/^Tidak bisa terhubung: /,'');
+    if(!confirm('Perubahan terakhir BELUM tersimpan ke Drive.\nAlasan: '+why+'\n\nOK = unduh cadangan data dulu, lalu keluar.\nBatal = tetap di aplikasi (disarankan).'))return;
+    try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(dRef.current,null,1)],{type:'application/json'}));a.download='veltrix-flow-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()}catch(e){}}}
+  window.__lo=1;try{[KEY,'veltrix_flow_prev',SKEY,'veltrix_local'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem(SKEY)}catch(e){}
   location.reload()};
  const doGanti=async()=>{const a=document.getElementById('nk1'),b=document.getElementById('nk2');if(!a||!b)return;const nk=a.value.trim();
   if(nk.length<10)return setSs({st:'err',msg:'Kunci baru minimal 10 karakter.'});
   if(nk!==b.value.trim())return setSs({st:'err',msg:'Kunci baru dan ulangannya tidak sama.'});
   if(!sOk())return setSs({st:'err',msg:'Masuk dulu.'});setSs({st:'busy',msg:'Mengganti kunci…'});
   try{const r=await gsCall(syR.current,'ganti',{nk});if(r.ok){setSy({k:nk});a.value='';b.value='';setSs({st:'ok',msg:'Kunci berhasil diganti. Di perangkat lain, masuk lagi memakai kunci baru.'})}else setSs({st:'err',msg:r.error==='action'?'Script Google Drive belum diperbarui. Tempel versi .gs terbaru lalu Deploy versi baru.':(r.message||'Gagal mengganti kunci.')})}catch(e){setSs({st:'err',msg:'Tidak bisa terhubung: '+e.message})}};
- useEffect(()=>{if(!sOk()||!syR.current.auto||ssR.current.st==='conflict'||!isDirty())return;clearTimeout(tm.current);tm.current=setTimeout(()=>{if(bz.current){tm.current=setTimeout(()=>doSave(false),4000);return}doSave(false)},4000);return()=>clearTimeout(tm.current)},[d]);
- useEffect(()=>{if(sOk()&&syR.current.auto)doLoad(false);
-  const vis=()=>{if(document.visibilityState==='visible'&&sOk()&&syR.current.auto&&ssR.current.st!=='conflict')doLoad(false,true)},on=()=>{if(sOk()&&syR.current.auto&&ssR.current.st!=='conflict'&&isDirty())doSave(false)};
+ useEffect(()=>{if(!sOk()||ssR.current.st==='conflict'||!isDirty())return;clearTimeout(tm.current);tm.current=setTimeout(()=>{if(bz.current){tm.current=setTimeout(()=>doSave(false),1500);return}doSave(false)},1000);return()=>clearTimeout(tm.current)},[d]);
+ useEffect(()=>{if(ss.st!=='err'||!sOk()||!isDirty())return;const t=setTimeout(()=>{if(!bz.current)doSave(false)},10000);return()=>clearTimeout(t)},[ss]);
+ useEffect(()=>{const f=e=>{if(!window.__lo&&sOk()&&isDirty()){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',f);return()=>window.removeEventListener('beforeunload',f)},[]);
+ useEffect(()=>{if(sOk())doLoad(false);
+  const vis=()=>{if(document.visibilityState==='visible'&&sOk()&&ssR.current.st!=='conflict')doLoad(false,true)},on=()=>{if(sOk()&&ssR.current.st!=='conflict'&&isDirty())doSave(false)};
   document.addEventListener('visibilitychange',vis);window.addEventListener('online',on);const iv=setInterval(vis,60000);return()=>{clearInterval(iv);document.removeEventListener('visibilitychange',vis);window.removeEventListener('online',on)}},[]);
  const add=k=>o=>setD(x=>({...x,[k]:[...x[k],o]})),del=k=>id=>setD(x=>({...x,[k]:x[k].filter(i=>i.id!==id)})),
   edit=(k,id,p)=>setD(x=>({...x,[k]:x[k].map(i=>i.id===id?{...i,...p}:i)})),ask=m=>num(prompt(m)||0);
@@ -1253,9 +1270,8 @@ function App(){
    <div className="row"><label><span className="lbl">URL aplikasi web (berakhiran /exec)</span><input defaultValue={sy.url} placeholder="https://script.google.com/macros/s/…/exec" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.url&&setSy({url:v,...SYR0,h:''})}}/></label>
     <label><span className="lbl">Nama pengguna</span><input defaultValue={sy.u} placeholder="mis. sutina" onBlur={e=>{const v=e.target.value.trim().toLowerCase();v!==syR.current.u&&setSy({u:v,...SYR0,h:''})}}/></label>
     <label><span className="lbl">Kunci</span><input type="password" defaultValue={sy.k} placeholder="kunci dari log Apps Script" onBlur={e=>{const v=e.target.value.trim();v!==syR.current.k&&setSy({k:v,...SYR0,h:''})}}/></label></div>
-   <label style={{display:'block',margin:'6px 0'}}><input type="checkbox" checked={!!sy.auto} style={{width:'auto',marginRight:6}} onChange={e=>setSy({auto:e.target.checked})}/>Simpan otomatis ke Drive setelah ada perubahan</label>
-   <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'8px 0'}}><button className="g" onClick={doPing}>Tes koneksi</button><button className="g" onClick={()=>doLoad(false)}>Ambil dari Drive</button><button className="b" onClick={()=>doSave(false)}>Simpan ke Drive</button>
-</div>
+   <p className="mu" style={{margin:'6px 0'}}>Setiap perubahan otomatis tersimpan ke Drive, dan data terbaru dari Drive diambil otomatis.</p>
+   <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'8px 0'}}><button className="g" onClick={doPing}>Tes koneksi</button>{ss.st==='err'&&isDirty()&&<button className="b" onClick={()=>doSave(false)}>Coba lagi</button>}</div>
    {ss.msg&&<div className="mu" role="status" style={{color:ss.st==='err'?'var(--loss)':undefined}}>{ss.msg}{sy.last&&ss.st!=='busy'?' Terakhir tersimpan: '+new Date(sy.last).toLocaleString('id-ID')+'.':''}</div>}
    {ss.st==='conflict'&&<div style={{background:'#fff0b8',borderRadius:12,padding:10,margin:'8px 0'}}><b>Pilih data mana yang dipakai</b><div className="mu" style={{fontSize:12}}>Bagian: {ss.remote&&(ss.remote.parts||[]).map(x=>x==='shared'?'Bersama':'Pribadi').join(' + ')}{ss.remote&&ss.remote.savedAt?', disimpan '+new Date(ss.remote.savedAt).toLocaleString('id-ID'):''}{ss.remote&&ss.remote.by?' oleh '+ss.remote.by:''}. Yang tidak dipilih akan tertimpa (cadangan otomatis tetap ada).</div>
     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:6}}><button className="b" onClick={()=>{if(confirm('Pakai data dari Drive dan timpa data di perangkat ini?'))doLoad((ss.remote&&ss.remote.parts)||true)}}>Pakai data Drive</button><button className="g" onClick={()=>{if(confirm('Pakai data di perangkat ini dan timpa data di Drive?'))doSave((ss.remote&&ss.remote.parts)||true)}}>Pakai data perangkat ini</button></div></div>}</Card>
@@ -1267,7 +1283,7 @@ function App(){
   ['inv','Investasi',Inv,'#c9f0e9','Pantau tunasmu tumbuh, pelan tapi pasti.'],['debt','Utang & Kartu Kredit',Debt,'#ffd6cb','Cicilan terpantau, hati jadi tenang.'],
   ['ef','Dana Darurat & Sinking',Ef,'#c9f0e9','Dana siaga dan tabungan tujuanmu.'],['set','Pengaturan',Set,'#c9f0e9','Atur sesuai gayamu.']],cur=T.find(x=>x[0]===tab)||T[0],Page=cur[2];
  if(lg)return <Login sy0={sy} onDone={onLogin}/>;
- const chip=!sy.url?null:ss.st==='conflict'?['⚠ Konflik data','#ffd9d0']:ss.st==='busy'?['☁ Menyinkronkan…','#e6f4f1']:ss.st==='err'?['⚠ Drive belum terhubung','#ffd9d0']:(isDirty()?['☁ Belum disimpan','#fff0b8']:['☁ Tersimpan di Drive','#cdf0e8']);
+ const chip=!sy.url?null:ss.st==='conflict'?['⚠ Konflik data','#ffd9d0']:ss.st==='busy'?['☁ Menyimpan…','#e6f4f1']:ss.st==='err'?[isDirty()?'⚠ Gagal menyimpan, mencoba lagi…':'⚠ Drive belum terhubung','#ffd9d0']:(isDirty()?['☁ Belum disimpan','#fff0b8']:['☁ Tersimpan di Drive','#cdf0e8']);
  return <div className="app"><Sprites/>{chip&&<button data-sync-chip="1" onClick={()=>setTab('set')} title="Buka pengaturan sinkronisasi" style={{position:'fixed',right:14,bottom:14,zIndex:50,border:'1px solid #0f4c5c33',background:chip[1],color:'#0f4c5c',borderRadius:999,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}}>{chip[0]}</button>}<aside><Logo/><nav aria-label="Menu utama">{T.map(([k,l])=><button key={k} className={tab===k?'on':''} aria-label={l} aria-current={tab===k?'page':undefined} onClick={()=>setTab(k)}><span style={{background:tab===k?'#fff':'#e6f7f4',borderRadius:12,width:42,height:42,display:'grid',placeItems:'center',flex:'0 0 42px'}}><NavIcon k={k} s={30}/></span>{l}</button>)}</nav>{sy.url&&<button className="g lo" onClick={doLogout}>Keluar ({sy.u})</button>}</aside><main>{tab!=='dash'&&<PageHead t={cur}/>}{Page()}</main></div>}
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script></body></html>
