@@ -153,11 +153,12 @@ const hs=o=>{const t=JSON.stringify(o);let x=0;for(let i=0;i<t.length;i++)x=(x*3
 /* ===== Database tunggal: bagian pribadi (mine) + bagian bersama (shared) ===== */
 const SHK=['accs','tx','pk','al','ins','itx','debt','fund','fe'];
 const hasItems=p=>SHK.some(k=>(p[k]||[]).length>0);
+const flipSh=it=>{let r=typeof it.share==='number'?{...it,share:100-it.share}:it;if(it.kind==='kartu'){const p=it.p0!=null?it.p0:(it.rem||0);if(typeof it.my0==='number')r={...r,my0:Math.max(0,p-Math.min(it.my0,p))};if((it.buy||[]).some(b=>typeof b.sh==='number'))r={...r,buy:it.buy.map(b=>typeof b.sh==='number'?{...b,sh:100-b.sh}:b)}}return r};
 const splitD=(d,u)=>{
  const accB={};(d.accs||[]).forEach(a=>{accB[a.id]=a.own==='Bersama'?1:0});
  const isK=id=>Object.prototype.hasOwnProperty.call(accB,id);
  const clr=o=>{if(o&&o._s!==undefined){const{_s,...r}=o;return r}return o};
- const stamp=o=>{let r=clr(o);if(!r.cr)r={...r,cr:u};return r};
+ const stamp=o=>{let r=clr(o);if(!r.cr)r={...r,cr:u};if(r.cr!==u)r=flipSh(r);return r};
  const txSh=t=>{const ids=[t.acc,t.type==='tf'?t.to:''].filter(Boolean);if(ids.some(i=>accB[i]===1))return true;return !!t._s&&ids.some(i=>!isK(i))};
  const B=o=>o.own==='Bersama';
  const sh={},mi={};
@@ -174,7 +175,7 @@ const ensureCats=o=>{
  o.ins.forEach(i=>add('ast',i.cls));o.debt.forEach(x=>add(x.kind==='kartu'?'kcat':'dcat',x.cat));return o};
 const composeD=(mine,shared,u)=>{
  const m=mig(mine||{}),S=shared||{};
- const fl=it=>it;
+ const fl=it=>(it.cr&&it.cr!==u)?flipSh(it):it;
  const o={...m};
  SHK.forEach(k=>{const L=(S[k]||[]).map(it=>k==='tx'?{...it,_s:1}:(['accs','pk','ins','debt','fund'].indexOf(k)>=0?fl(it):it));o[k]=[...(m[k]||[]),...L]});
  return ensureCats(o)};
@@ -415,7 +416,12 @@ function Pockets({d,setD,bal}){
  </Card>}
 
 const remOf=x=>Math.max(0,(x.p0!=null?x.p0:(x.rem||0))+(x.buy||[]).reduce((s,b)=>s+b.amt,0)-(x.pay||[]).reduce((s,p)=>s+p.amt,0));
-const dSh=x=>x.own==='Bersama'?((x.share>0?x.share:50)/100):1;
+const shv=v=>typeof v==='number'&&v>=0&&v<=100?v:50,shIn=v=>{const n=num(v);return v===''||v==null||!(n>=0)?50:Math.min(100,n)};
+const p0Of=x=>x.p0!=null?x.p0:(x.rem||0),bsh=(b,x)=>typeof b.sh==='number'?b.sh:shv(x.share);
+const kT=x=>p0Of(x)+(x.buy||[]).reduce((q,b)=>q+b.amt,0),kP=x=>{const p=p0Of(x),m0=typeof x.my0==='number'?Math.min(Math.max(x.my0,0),p):p*shv(x.share)/100;return m0+(x.buy||[]).reduce((q,b)=>q+b.amt*bsh(b,x)/100,0)};
+const dSh=x=>x.own!=='Bersama'?1:(x.kind==='kartu'&&kT(x)>0?Math.min(1,kP(x)/kT(x)):shv(x.share)/100);
+const usedOf=(d,x)=>remOf(x)+(d.debt||[]).filter(y=>y.kart===x.id&&!y.arch&&y.own===x.own).reduce((q,y)=>q+remOf(y),0);
+const ShareF=(v,set)=>{const k=String(v)==='50'?'50':String(v)==='100'?'100':String(v)==='0'?'0':'x';return<><select value={k} title="Pembagian biaya" style={{flexBasis:'100%'}} onChange={e=>set(e.target.value==='x'?'60':e.target.value)}><option value="50">Biaya dibagi dua (50/50)</option><option value="100">Saya yang menanggung penuh (100%)</option><option value="0">Pasangan yang menanggung penuh (saya 0%)</option><option value="x">Atur persen sendiri</option></select>{k==='x'&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={v} onChange={e=>set(e.target.value)}/>}</>};
 const nowYM=()=>{const t=new Date();return t.getFullYear()+'-'+pad(t.getMonth()+1)};
 const mIdx=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7));
 const bPiece=(x,ym)=>(x.buy||[]).reduce((t,b)=>{const bd=(b.bdate||b.date||'').slice(0,7);if(!bd)return t;const i=mIdx(bd,ym);return t+(b.ten>1?(i>=0&&i<b.ten?b.amt/b.ten:0):(i===0?b.amt:0))},0);
@@ -424,7 +430,7 @@ const cicInfo=x=>{if(!(x.tenor>0))return null;const ke=Math.min(x.tenor,(x.done|
 const dimo=(y,m)=>new Date(y,m+1,0).getDate();
 const expList=d=>{const t=new Date(),td0=ymd(new Date(t.getFullYear(),t.getMonth(),t.getDate())),R=[];
  (d.tx||[]).forEach(x=>{if(x.type==='out')R.push({date:x.date,amt:x.amt,cat:x.cat||'Lainnya',src:x.pk?'pk':(x.dv?'cicil':'lain')});else if(x.type==='dbt'&&x.ec)R.push({date:x.date,amt:x.amt,cat:x.ec,src:'cicil'})});
- (d.debt||[]).filter(x=>x.kind==='kartu').forEach(x=>{const sh=dSh(x);(x.buy||[]).filter(b=>b.cat).forEach(b=>{
+ (d.debt||[]).filter(x=>x.kind==='kartu').forEach(x=>{(x.buy||[]).filter(b=>b.cat).forEach(b=>{const sh=x.own==='Bersama'?bsh(b,x)/100:1;
   if(b.ten>1){const bd=b.bdate||b.date,y=+bd.slice(0,4),m=+bd.slice(5,7)-1,dd=+bd.slice(8,10);for(let i=0;i<b.ten;i++){const yy=y+Math.floor((m+i)/12),mm=(m+i)%12;R.push({date:yy+'-'+pad(mm+1)+'-'+pad(Math.min(dd,dimo(yy,mm))),amt:b.amt/b.ten*sh,cat:b.cat,src:'cicil'})}}
   else R.push({date:b.date,amt:b.amt*sh,cat:b.cat,src:'cicil'})})});
  return R.filter(r=>r.date<=td0)};
@@ -440,7 +446,7 @@ const FUN={late:['Psst, {x} sudah lewat jatuh tempo {n} hari. Dompetmu bilang: b
  soon:['{x} jatuh tempo {n} hari lagi. Siapin dananya biar nggak kelabakan ya!','Tinggal {n} hari lagi buat {x}. Cuss siapin dulu!']};
 const funMsg=(x,st)=>{const L=FUN[st.s],h=[...x.id].reduce((s,c)=>s+c.charCodeAt(0),0)+new Date().getDate();return L[h%L.length].replace('{x}',x.name).replace('{n}',st.n)};
 const fBal=(d,f)=>(f.open||0)+(d.fe||[]).filter(e=>e.fid===f.id).reduce((s,e)=>s+(e.k==='in'?e.amt:-e.amt),0);
-const fSh=f=>f.own==='Bersama'?((f.share>0?f.share:50)/100):1;
+const fSh=f=>f.own==='Bersama'?shv(f.share)/100:1;
 const fTgs=(f,efT,efm)=>[...(f.auto?[{id:'auto',n:'Otomatis '+efm+' bulan pengeluaran',amt:efT,date:'',auto:true}]:[]),...(f.tg||[])].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
 const fNext=(d,f,efT,efm)=>{const L=fTgs(f,efT,efm),b=fBal(d,f),sh=fSh(f),t=new Date(),td0=ymd(new Date(t.getFullYear(),t.getMonth(),t.getDate())),un=L.filter(x=>x.amt*sh>b+0.5),
   live=un.find(x=>!x.date||x.date>=td0),nx=live||un[un.length-1]||L[L.length-1]||null;if(!nx)return null;
@@ -458,14 +464,14 @@ function FundPage({d,setD,bal,efT,req,clearReq}){
  const [open,setOpen]=useState({}),[fm,setFm]=useState(null),[sf,setSf]=useState(null),[per,setPer]=useState({});
  const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name;
  const F0=k=>({mode:'add',kind:k,name:'',own:k==='sinking'?'Bersama':'Pribadi',share:'50',acc:'',open:'',od:td,frozen:k==='tabungan',loan:false,auto:k==='darurat',tg:[{id:uid(),n:'',amt:'',date:''}]});
- const toF=f=>({mode:'edit',id:f.id,kind:f.kind,name:f.name,own:f.own||'Pribadi',share:String(f.share||50),acc:f.acc||'',open:ds(f.open),od:f.od||td,frozen:!!f.frozen,loan:!!f.loan,auto:!!f.auto,tg:(f.tg||[]).length?f.tg.map(t=>({id:t.id,n:t.n||'',amt:ds(t.amt),date:t.date||''})):[{id:uid(),n:'',amt:'',date:''}]});
+ const toF=f=>({mode:'edit',id:f.id,kind:f.kind,name:f.name,own:f.own||'Pribadi',share:String(shv(f.share)),acc:f.acc||'',open:ds(f.open),od:f.od||td,frozen:!!f.frozen,loan:!!f.loan,auto:!!f.auto,tg:(f.tg||[]).length?f.tg.map(t=>({id:t.id,n:t.n||'',amt:ds(t.amt),date:t.date||''})):[{id:uid(),n:'',amt:'',date:''}]});
  const saveF=e=>{e.preventDefault();const k=fm.kind,bs=fm.own==='Bersama';
   const tg=fm.tg.filter(t=>num(t.amt)>0).map(t=>({id:t.id||uid(),n:(t.n||'').trim()||'Target',amt:num(t.amt),date:t.date||''}));
   if(!fm.name.trim())return alert('Isi nama dana.');if(!fm.acc)return alert('Pilih akun induk (tempat uang dana ini disimpan).');
   if(k==='sinking'&&(!tg.length||tg.some(t=>!t.date)))return alert('Sinking Fund wajib punya target dan tanggal target.');
   if(k==='tabungan'&&!tg.length)return alert('Isi minimal satu target.');
   if(k==='darurat'&&!fm.auto&&!tg.length)return alert('Dana Darurat butuh target: centang target otomatis atau isi nominal.');
-  const o={name:fm.name.trim(),kind:k,own:bs?'Bersama':'Pribadi',share:bs?(num(fm.share)||50):100,acc:fm.acc,open:num(fm.open),od:fm.od||td,frozen:!!fm.frozen,loan:k==='darurat'&&!!fm.loan,auto:k==='darurat'&&!!fm.auto,tg};
+  const o={name:fm.name.trim(),kind:k,own:bs?'Bersama':'Pribadi',share:bs?shIn(fm.share):100,acc:fm.acc,open:num(fm.open),od:fm.od||td,frozen:!!fm.frozen,loan:k==='darurat'&&!!fm.loan,auto:k==='darurat'&&!!fm.auto,tg};
   if(fm.mode==='edit')setD(x=>({...x,fund:x.fund.map(f=>f.id===fm.id?{...f,...o,todo:false}:f)}));else setD(x=>({...x,fund:[...(x.fund||[]),{id:uid(),...o}]}));setFm(null)};
  const delF=f=>{const n=(d.fe||[]).filter(e=>e.fid===f.id).length;if(!confirm('Hapus dana "'+f.name+'"'+(n?' beserta '+n+' catatan riwayatnya? Transaksi setor/tarik di Cash Flow yang terkait ikut dihapus, dan saldo akun kembali seperti sebelum dicatat.':'?')+' Tidak bisa dibatalkan.'))return;
   const ids=new Set((d.fe||[]).filter(e=>e.fid===f.id).map(e=>e.tid).filter(Boolean));setD(x=>({...x,tx:x.tx.filter(t=>!ids.has(t.id)),fe:(x.fe||[]).filter(e=>e.fid!==f.id),fund:x.fund.filter(i=>i.id!==f.id)}))};
@@ -496,7 +502,7 @@ function FundPage({d,setD,bal,efT,req,clearReq}){
   <input placeholder="Nama dana * (mis. BPR, Panin, Travel)" value={fm.name} onChange={e=>setFm({...fm,name:e.target.value})}/>
   <select value={fm.acc} title="Akun induk" onChange={e=>setFm({...fm,acc:e.target.value})}><option value="">Akun induk * (tempat uangnya)</option>{d.accs.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>
   <select value={fm.own} title="Pribadi atau Bersama" onChange={e=>setFm({...fm,own:e.target.value})}><option>Pribadi</option><option>Bersama</option></select>
-  {fm.own==='Bersama'&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={fm.share} onChange={e=>setFm({...fm,share:e.target.value})}/>}
+  {fm.own==='Bersama'&&ShareF(fm.share,x=>setFm({...fm,share:x}))}
   <input placeholder="Saldo awal (uang yang sudah terkumpul)" inputMode="decimal" value={fm.open} onChange={e=>setFm({...fm,open:e.target.value})}/>
   <label style={{display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Tanggal saldo awal<input type="date" value={fm.od} onChange={e=>setFm({...fm,od:e.target.value})}/></label>
   <div style={{flexBasis:'100%',display:'flex',flexWrap:'wrap',gap:14}}>
@@ -543,7 +549,7 @@ function FundPage({d,setD,bal,efT,req,clearReq}){
    <div className="row" style={{margin:0,alignItems:'center',flexWrap:'wrap'}}>
     <button className="g" aria-expanded={op} aria-label={(op?'Tutup':'Buka')+' rincian '+f.name} style={{minWidth:34,margin:0,fontWeight:700,flex:'0 0 auto'}} onClick={()=>setOpen({...open,[f.id]:!op})}>{op?'−':'+'}</button>
     <b style={{fontSize:16,color:'var(--dk)',flex:'0 0 auto'}}>{f.name}</b>
-    {f.own==='Bersama'&&<span className="tag ft" style={{background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {f.share||50}%</span>}
+    {f.own==='Bersama'&&<span className="tag ft" style={{background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {shv(f.share)}%</span>}
     {f.frozen&&<span className="tag ft" style={{background:'#CFE8F7',color:'#1f4f73'}}>Beku</span>}
     {f.loan&&<span className="tag ft" style={{background:'#d8f3dc',color:'#1b5e20'}}>Boleh dipakai darurat</span>}
     {(!f.acc||f.todo)&&<span className="tag r ft">Lengkapi lewat Edit</span>}
@@ -580,14 +586,14 @@ function DebtPage({d,setD,bal,req,clearReq}){
  const cats=k=>k==='kartu'?d.kcat:d.dcat,ck=k=>k==='kartu'?'kcat':'dcat';
  const newCat=k=>{const n=(prompt('Nama jenis '+(k==='kartu'?'kartu':'utang')+' baru:')||'').trim();if(!n)return null;const ex=cats(k).find(c=>c.toLowerCase()===n.toLowerCase());if(ex)return ex;setD(x=>({...x,[ck(k)]:[...x[ck(k)],n]}));return n};
  const delCat=(k,c)=>{if(d.debt.some(x=>x.kind===k&&x.cat===c))return alert('Jenis "'+c+'" masih dipakai. Ubah dulu jenis utang atau kartunya.');if(confirm('Hapus jenis "'+c+'"?'))setD(x=>({...x,[ck(k)]:x[ck(k)].filter(i=>i!==c)}))};
- const F0=k=>({mode:'add',kind:k,ecat:'',own:'Pribadi',share:'50',cat:cats(k)[0]||'',name:'',lender:'',p0:'',p00:'',tenor:'',done:'',inst:'',rate:'',due:'',start:'',limit:'',bill:''});
- const toF=x=>({mode:'edit',id:x.id,kind:x.kind,ecat:x.ecat||'',own:x.own||'Pribadi',share:String(x.share||50),cat:x.cat||'',name:x.name,lender:x.lender||'',p0:ds(x.p0),p00:ds(x.p00),tenor:ds(x.tenor),done:ds(x.done),inst:ds(x.inst),rate:ds(x.rate),due:ds(x.due),start:x.start||'',limit:ds(x.limit),bill:ds(x.bill)});
+ const F0=k=>({mode:'add',kind:k,ecat:'',own:'Pribadi',share:'50',my0:'',kart:'',cat:cats(k)[0]||'',name:'',lender:'',p0:'',p00:'',tenor:'',done:'',inst:'',rate:'',due:'',start:'',limit:'',bill:''});
+ const toF=x=>({mode:'edit',id:x.id,kind:x.kind,ecat:x.ecat||'',own:x.own||'Pribadi',share:String(shv(x.share)),my0:typeof x.my0==='number'?ds(x.my0):'',kart:x.kart||'',cat:x.cat||'',name:x.name,lender:x.lender||'',p0:ds(x.p0),p00:ds(x.p00),tenor:ds(x.tenor),done:ds(x.done),inst:ds(x.inst),rate:ds(x.rate),due:ds(x.due),start:x.start||'',limit:ds(x.limit),bill:ds(x.bill)});
  const saveFm=e=>{e.preventDefault();const k=fm.kind;
   if(!fm.name.trim())return alert('Isi nama.');if(!(num(fm.p0)>=0)||fm.p0==='')return alert(k==='kartu'?'Isi tagihan atau saldo terutang saat ini (boleh 0).':'Isi sisa pokok saat ini.');
   if(k==='kartu'&&!(num(fm.limit)>0))return alert('Isi limit kartu.');
   const du=num(fm.due);if(fm.due!==''&&(du<1||du>31))return alert('Tanggal jatuh tempo harus 1 sampai 31.');
-  const o={cat:fm.cat,own:fm.own,share:fm.own==='Bersama'?(num(fm.share)||50):100,name:fm.name.trim(),lender:fm.lender.trim(),p0:num(fm.p0),due:du||0,start:fm.start,
-   ...(k==='utang'?{p00:num(fm.p00)||num(fm.p0),tenor:num(fm.tenor),done:num(fm.done),inst:num(fm.inst),rate:num(fm.rate),ecat:fm.ecat||''}:{limit:num(fm.limit),bill:num(fm.bill),inst:0})};
+  const o={cat:fm.cat,own:fm.own,share:fm.own==='Bersama'?shIn(fm.share):100,name:fm.name.trim(),lender:fm.lender.trim(),p0:num(fm.p0),due:du||0,start:fm.start,
+   ...(k==='utang'?{p00:num(fm.p00)||num(fm.p0),tenor:num(fm.tenor),done:num(fm.done),inst:num(fm.inst),rate:num(fm.rate),ecat:fm.ecat||'',kart:fm.kart||''}:{limit:num(fm.limit),bill:num(fm.bill),inst:0,my0:fm.own==='Bersama'&&fm.my0!==''?Math.min(Math.max(num(fm.my0),0),num(fm.p0)):undefined})};
   if(fm.mode==='edit')setD(x=>{const it=x.debt.find(i=>i.id===fm.id),ids=new Set((it.pay||[]).map(q=>q.tid).filter(Boolean)),ec=k==='utang'?(fm.ecat||''):'';return{...x,tx:x.tx.map(t=>ids.has(t.id)?{...t,ec:ec||undefined,cat:ec}:t),debt:x.debt.map(i=>i.id===fm.id?{...i,...o}:i)}});
   else setD(x=>({...x,debt:[...x.debt,{id:uid(),kind:k,pay:[],buy:[],...o}]}));
   setFm(null)};
@@ -616,13 +622,13 @@ function DebtPage({d,setD,bal,req,clearReq}){
    return{...s,cout:s.cout.includes('Bunga & denda')||!(it>0)?s.cout:[...s.cout,'Bunga & denda'],tx,debt:s.debt.map(i=>i.id===x.id?{...i,pay:i.pay.map(q=>q.id===p.id?{...q,date:ep.date,amt,mine,int:it,acc:by==='pasangan'?'':ep.acc,tid2,note:ep.note.trim()}:q)}:i)}});setEp(null)};
  const billDate=(x,dt)=>{if(!(x.bill>0)||!dt)return dt;const y=+dt.slice(0,4);let m=+dt.slice(5,7)-1;if(+dt.slice(8,10)>x.bill)m++;return ymd(new Date(y,m,Math.min(x.bill,new Date(y,m+1,0).getDate())))};
  const defCat=d.cout.includes('Lainnya')?'Lainnya':(d.cout[0]||'');
- const newBf=x=>({mode:'add',id:x.id,date:td,bdate:billDate(x,td),amt:'',ten:'',note:'',cat:defCat});
+ const newBf=x=>({mode:'add',id:x.id,date:td,bdate:billDate(x,td),amt:'',ten:'',note:'',cat:defCat,sh:'50'});
  const saveBf=st=>{const x=d.debt.find(i=>i.id===st.id),amt=num(st.amt),ten=Math.round(num(st.ten))||0;
   if(!st.date||!st.bdate)return alert('Isi tanggal belanja dan tanggal masuk tagihan.');if(!(amt>0))return alert('Isi nominal belanja.');if(!st.cat)return alert('Pilih kategori biaya.');if(ten<0||ten===1)return alert('Cicilan minimal 2 bulan. Kosongkan kalau dibayar sekali.');
   const old=st.mode==='edit'?((x.buy||[]).find(b=>b.id===st.bid)||{amt:0}):{amt:0};
-  if(x.limit>0&&remOf(x)-old.amt+amt>x.limit&&!confirm('Dengan belanja ini pemakaian kartu ('+$(remOf(x)-old.amt+amt)+') melebihi limit ('+$(x.limit)+'). Tetap simpan?'))return;
-  if(st.mode==='add'){setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:[...(i.buy||[]),{id:uid(),date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat}]}:i)}));setBf(null)}
-  else{setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).map(b=>b.id===st.bid?{...b,date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat}:b)}:i)}));setEb(null)}};
+  if(x.limit>0&&usedOf(d,x)-old.amt+amt>x.limit&&!confirm('Dengan belanja ini pemakaian kartu ('+$(usedOf(d,x)-old.amt+amt)+') melebihi limit ('+$(x.limit)+'). Tetap simpan?'))return;
+  if(st.mode==='add'){setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:[...(i.buy||[]),{id:uid(),date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shIn(st.sh)}:{})}]}:i)}));setBf(null)}
+  else{setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).map(b=>b.id===st.bid?{...b,date:st.date,bdate:st.bdate,amt,ten,note:st.note.trim(),cat:st.cat,...(x.own==='Bersama'?{sh:shIn(st.sh)}:{})}:b)}:i)}));setEb(null)}};
  const delBf=(x,b)=>{if(confirm('Hapus belanja ini? Sisa limit kembali seperti sebelum dicatat.'))setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,buy:(i.buy||[]).filter(q=>q.id!==b.id)}:i)}))};
  const BfRow=(st,setSt,x)=><form className="row" style={{margin:0,background:'#D5F1EB',borderRadius:12,padding:10}} onSubmit={e=>{e.preventDefault();saveBf(st)}}>
   <label style={{display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Tanggal belanja<input type="date" value={st.date} onChange={e=>setSt({...st,date:e.target.value,bdate:billDate(x,e.target.value)})}/></label>
@@ -631,6 +637,7 @@ function DebtPage({d,setD,bal,req,clearReq}){
   <input placeholder="Cicilan (berapa bulan, kosong = sekali bayar)" inputMode="numeric" value={st.ten} onChange={e=>setSt({...st,ten:e.target.value})}/>
   <select value={st.cat} title="Kategori biaya" onChange={e=>{if(e.target.value==='__new'){const n=newEc();n&&setSt({...st,cat:n})}else setSt({...st,cat:e.target.value})}}>{[...new Set([st.cat,...d.cout])].filter(Boolean).map(c=><option key={c}>{c}</option>)}<option value="__new">+ Kategori baru…</option></select>
   <input placeholder="Keterangan (mis. Tokopedia)" value={st.note} onChange={e=>setSt({...st,note:e.target.value})}/>
+  {x.own==='Bersama'&&ShareF(st.sh,v=>setSt({...st,sh:v}))}
   <button className="b" style={{flex:'0 0 auto'}}>Simpan</button><button type="button" className="g" style={{flex:'0 0 auto'}} onClick={()=>st.mode==='add'?setBf(null):setEb(null)}>Batal</button></form>;
  const delItem=x=>{if(!(x.pay||[]).length){if(confirm('Hapus "'+x.name+'"?'))setD(s=>({...s,debt:s.debt.filter(i=>i.id!==x.id)}));return}
   if(confirm('"'+x.name+'" sudah punya riwayat bayar, jadi akan diarsipkan (dipindah ke Lunas & arsip) supaya saldo akun tetap benar. Lanjutkan?'))setD(s=>({...s,debt:s.debt.map(i=>i.id===x.id?{...i,arch:true}:i)}))};
@@ -640,34 +647,35 @@ function DebtPage({d,setD,bal,req,clearReq}){
   return n>0?{t:'Telat '+n+' hari',r:1}:n<0?{t:'Lebih cepat '+(-n)+' hari'}:{t:'Tepat waktu'}};
  const all=d.debt,act=all.filter(x=>!x.arch&&remOf(x)>0),done=all.filter(x=>x.arch||remOf(x)<=0);
  const U=act.filter(x=>x.kind!=='kartu'),Kt=act.filter(x=>x.kind==='kartu');
- const Item=x=>{const kt=x.kind==='kartu',rem=remOf(x),op=!!open[x.id],nd=nextDue(x),st=dueState(x),pays=[...(x.pay||[])].sort((a,b)=>a.date.localeCompare(b.date)),
-   base=kt?(x.limit||0):(x.p00||x.p0||0),pc=kt?(x.limit>0?rem/x.limit*100:0):(base>0?(1-rem/base)*100:0),ke=(x.done||0)+pays.filter(p=>p.by!=='pasangan').length,
+ const Item=x=>{const kt=x.kind==='kartu',rem=remOf(x),ru=kt?usedOf(d,x):rem,lk=kt?d.debt.filter(y=>y.kart===x.id&&!y.arch&&y.own===x.own&&remOf(y)>0):[],op=!!open[x.id],nd=nextDue(x),st=dueState(x),pays=[...(x.pay||[])].sort((a,b)=>a.date.localeCompare(b.date)),
+   base=kt?(x.limit||0):(x.p00||x.p0||0),pc=kt?(x.limit>0?ru/x.limit*100:0):(base>0?(1-rem/base)*100:0),ke=(x.done||0)+pays.filter(p=>p.by!=='pasangan').length,
    mi=[{l:kt?'Bayar tagihan':'Bayar',fn:()=>{setOpen({...open,[x.id]:true});setPy(newPy(x))}},{l:'Edit',fn:()=>{setOpen({...open,[x.id]:true});setFm(toF(x))}},{l:'Hapus',danger:true,fn:()=>delItem(x)}];
   return <React.Fragment key={x.id}>
    <tr style={op?{background:kt?'#EAF8F5':'#f1f8fd'}:undefined}>
     <td><button className="g" aria-expanded={op} aria-label={(op?'Tutup':'Buka')+' rincian '+x.name} style={{minWidth:34,margin:0,fontWeight:700}} onClick={()=>setOpen({...open,[x.id]:!op})}>{op?'−':'+'}</button></td>
-    <td><b>{x.name}</b>{x.lender&&<div className="mu" style={{fontSize:12}}>{x.lender}</div>}{kt&&x.limit>0&&rem>x.limit&&<span className="tag r" style={{marginTop:3,marginRight:4,display:'inline-block'}}>Melebihi limit</span>}{kt&&x.limit>0&&rem<=x.limit&&rem/x.limit>=0.8&&<span className="tag r" style={{marginTop:3,marginRight:4,display:'inline-block'}}>Limit {Math.round(rem/x.limit*100)}% terpakai</span>}{st&&<span className="tag r" style={{marginTop:3,display:'inline-block'}}>{st.s==='late'?'Telat '+st.n+' hari':st.s==='today'?'Jatuh tempo hari ini':'H-'+st.n}</span>}</td>
-    {kt?<><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(x.limit)}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}><b>{$(rem)}</b></td><td className={x.limit-rem<0?'loss':''} style={{textAlign:'right',whiteSpace:'nowrap'}}>{$((x.limit||0)-rem)}</td></>
+    <td><b>{x.name}</b>{x.lender&&<div className="mu" style={{fontSize:12}}>{x.lender}</div>}{kt&&x.limit>0&&ru>x.limit&&<span className="tag r" style={{marginTop:3,marginRight:4,display:'inline-block'}}>Melebihi limit</span>}{kt&&x.limit>0&&ru<=x.limit&&ru/x.limit>=0.8&&<span className="tag r" style={{marginTop:3,marginRight:4,display:'inline-block'}}>Limit {Math.round(ru/x.limit*100)}% terpakai</span>}{st&&<span className="tag r" style={{marginTop:3,display:'inline-block'}}>{st.s==='late'?'Telat '+st.n+' hari':st.s==='today'?'Jatuh tempo hari ini':'H-'+st.n}</span>}</td>
+    {kt?<><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(x.limit)}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}><b>{$(ru)}</b></td><td className={x.limit-ru<0?'loss':''} style={{textAlign:'right',whiteSpace:'nowrap'}}>{$((x.limit||0)-ru)}</td></>
      :<><td style={{whiteSpace:'nowrap'}}>{x.tenor>0?'ke-'+ke+' dari '+x.tenor:'-'}{x.tenor>0&&<div className="mu" style={{fontSize:12}}>sisa {Math.max(0,x.tenor-ke)} cicilan</div>}{x.inst>0&&<div className="mu" style={{fontSize:12}}>{$(x.inst)}/bln</div>}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}><b>{$(rem)}</b></td></>}
     <td style={{whiteSpace:'nowrap'}}>{nd?<span className={'tag'+(nd.n<=7?' r':'')}>{nd.l}</span>:'-'}</td>
     <td style={{textAlign:'right'}}><Menu label={'Aksi '+x.name} items={mi}/></td></tr>
    {op&&<tr><td colSpan={kt?7:6} style={{background:kt?'#F1FAF8':'#F8FBFE',padding:'12px 14px'}}>
     {fm&&fm.mode==='edit'&&fm.id===x.id&&FormBox()}
     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
-     {kt?<><Pill l="Limit" v={$(x.limit)}/><Pill l="Terpakai (limit)" v={$(rem)}/><Pill l="Sisa limit" v={$((x.limit||0)-rem)} c={(x.limit||0)-rem<0?'loss':'gain'}/>{(x.buy||[]).length>0&&<Pill l="Tagihan bulan ini (dari belanja tercatat)" v={$(bPiece(x,nowYM()))}/>}{x.bill>0&&<Pill l="Tanggal tagihan" v={'tgl '+x.bill}/>}</>
+     {kt?<><Pill l="Limit" v={$(x.limit)}/><Pill l="Terpakai (limit)" v={$(ru)}/><Pill l="Sisa limit" v={$((x.limit||0)-ru)} c={(x.limit||0)-ru<0?'loss':'gain'}/>{((x.buy||[]).length>0||lk.length>0)&&<Pill l="Tagihan bulan ini (belanja + cicilan terhubung)" v={$(bPiece(x,nowYM())+lk.reduce((q,y)=>q+Math.min(y.inst||0,remOf(y)),0))}/>}{x.bill>0&&<Pill l="Tanggal tagihan" v={'tgl '+x.bill}/>}</>
       :<><Pill l="Pokok awal" v={$(base)}/><Pill l="Sudah dibayar" v={$(Math.max(0,base-rem))}/><Pill l="Sisa pokok" v={$(rem)}/>{x.tenor>0&&<Pill l="Cicilan" v={'ke-'+ke+' dari '+x.tenor}/>}{x.rate>0&&<Pill l="Bunga" v={x.rate+'%/thn'}/>}{x.ecat&&<Pill l="Dihitung sebagai biaya" v={x.ecat}/>}</>}</div>
+    {kt&&lk.length>0&&<div className="mu" style={{fontSize:12,marginBottom:4}}>Termasuk cicilan terhubung: {lk.map(y=>y.name+' ('+$(remOf(y))+')').join(', ')}. Sisa tagihan kartu sendiri {$(rem)}.</div>}
     <Bar v={pc} t={kt?bt(pc):''}/><div className="mu" style={{fontSize:12,margin:'3px 0 10px'}}>{kt?Math.round(pc)+'% limit terpakai':Math.round(pc)+'% sudah terbayar'}</div>
     {kt&&<div style={{margin:'0 0 12px'}}>
      <div className="row" style={{margin:'0 0 6px',alignItems:'center',flexWrap:'nowrap'}}><b style={{color:'var(--dk)'}}>Belanja dengan kartu ini</b><button className="b" style={{flex:'0 0 auto',marginLeft:'auto'}} onClick={()=>setBf(bf&&bf.id===x.id?null:newBf(x))}>+ Belanja</button></div>
      {bf&&bf.id===x.id&&BfRow(bf,setBf,x)}
      {(x.buy||[]).length>0?<div style={{overflowX:'auto',marginTop:8}}><table className="tb t-mt"><thead><tr><th>Tgl belanja</th><th>Masuk tagihan</th><th>Keterangan</th><th>Kategori biaya</th><th style={{textAlign:'right'}}>Nominal</th><th>Cicilan</th><th/></tr></thead><tbody>
       {[...x.buy].sort((a,b)=>a.date.localeCompare(b.date)).map(b=>eb&&eb.bid===b.id?<tr key={b.id}><td colSpan="7">{BfRow(eb,setEb,x)}</td></tr>
-       :<tr key={b.id}><td style={{whiteSpace:'nowrap'}}>{b.date}</td><td style={{whiteSpace:'nowrap'}}>{b.bdate||b.date}</td><td>{b.note||'-'}</td><td>{b.cat?b.cat:<span className="tag r">Belum dihitung</span>}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(b.amt)}</td>
+       :<tr key={b.id}><td style={{whiteSpace:'nowrap'}}>{b.date}</td><td style={{whiteSpace:'nowrap'}}>{b.bdate||b.date}</td><td>{b.note||'-'}{x.own==='Bersama'&&<div className="mu" style={{fontSize:12}}>Porsi saya {Math.round(bsh(b,x))}%</div>}</td><td>{b.cat?b.cat:<span className="tag r">Belum dihitung</span>}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(b.amt)}</td>
         <td style={{whiteSpace:'nowrap'}}>{b.ten>1?<>ke-{bKe(b)} dari {b.ten}<div className="mu" style={{fontSize:12}}>{$(b.amt/b.ten)}/bln</div></>:'Sekali bayar'}</td>
-        <td style={{textAlign:'right'}}><Menu label="Aksi belanja" items={[{l:'Edit',fn:()=>setEb({mode:'edit',id:x.id,bid:b.id,date:b.date,bdate:b.bdate||b.date,amt:ds(b.amt),ten:b.ten>1?String(b.ten):'',note:b.note||'',cat:b.cat||defCat})},{l:'Hapus',danger:true,fn:()=>delBf(x,b)}]}/></td></tr>)}</tbody></table></div>
+        <td style={{textAlign:'right'}}><Menu label="Aksi belanja" items={[{l:'Edit',fn:()=>setEb({mode:'edit',id:x.id,bid:b.id,date:b.date,bdate:b.bdate||b.date,amt:ds(b.amt),ten:b.ten>1?String(b.ten):'',note:b.note||'',cat:b.cat||defCat,sh:String(bsh(b,x))})},{l:'Hapus',danger:true,fn:()=>delBf(x,b)}]}/></td></tr>)}</tbody></table></div>
       :<p className="mu" style={{margin:'4px 0'}}>Belum ada belanja tercatat. Catat belanja supaya sisa limit selalu akurat.</p>}</div>}
     {py&&py.id===x.id&&<form className="row" onSubmit={savePy} style={{background:kt?'#D5F1EB':'#DCEEFB',borderRadius:12,padding:10}}>
-     {x.own==='Bersama'&&<select value={py.by||'saya'} title="Siapa yang membayar" style={{flexBasis:'100%'}} onChange={e=>chBy(e.target.value)}><option value="saya">Saya bayar porsi saya ({x.share||50}%)</option><option value="talang">Saya talangi bagian pasangan (isi nominal total)</option><option value="pasangan">Dibayar pasangan (tidak mengurangi akun saya)</option></select>}
+     {x.own==='Bersama'&&<select value={py.by||'saya'} title="Siapa yang membayar" style={{flexBasis:'100%'}} onChange={e=>chBy(e.target.value)}><option value="saya">Saya bayar porsi saya ({Math.round(dSh(x)*100)}%)</option><option value="talang">Saya talangi bagian pasangan (isi nominal total)</option><option value="pasangan">Dibayar pasangan (tidak mengurangi akun saya)</option></select>}
      <input type="date" title="Tanggal bayar" value={py.date} onChange={e=>setPy({...py,date:e.target.value})}/>
      {py.by!=='pasangan'&&<select value={py.acc} title="Akun kas yang dipakai" onChange={e=>setPy({...py,acc:e.target.value})}><option value="">Bayar dari akun *</option>{d.accs.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>}
      <input placeholder={(py.by==='talang'?'Total yang saya bayarkan (100%)':py.by==='pasangan'?'Nominal yang dibayar pasangan':kt?'Nominal tagihan dibayar':'Nominal pokok dibayar')+' *'} inputMode="decimal" value={py.amt} onChange={e=>setPy({...py,amt:e.target.value})}/>
@@ -699,17 +707,19 @@ function DebtPage({d,setD,bal,req,clearReq}){
   <b style={{flexBasis:'100%'}}>{fm.mode==='edit'?'Edit ':'Tambah '}{fm.kind==='kartu'?'Kartu Kredit / Paylater':'Utang'}</b>
   <select value={fm.cat} title="Jenis" onChange={e=>{if(e.target.value==='__new'){const n=newCat(fm.kind);n&&setFm({...fm,cat:n})}else setFm({...fm,cat:e.target.value})}}>{[...new Set([fm.cat,...cats(fm.kind)])].filter(Boolean).map(c=><option key={c}>{c}</option>)}<option value="__new">+ Jenis baru…</option></select>
   <select value={fm.own} title="Pribadi atau Bersama" onChange={e=>setFm({...fm,own:e.target.value})}><option>Pribadi</option><option>Bersama</option></select>
-  {fm.own==='Bersama'&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={fm.share} onChange={e=>setFm({...fm,share:e.target.value})}/>}
+  {fm.own==='Bersama'&&fm.kind!=='kartu'&&ShareF(fm.share,x=>setFm({...fm,share:x}))}
   <input placeholder={fm.kind==='kartu'?'Nama kartu (mis. BCA Platinum) *':'Nama utang *'} value={fm.name} onChange={e=>setFm({...fm,name:e.target.value})}/>
   <input placeholder={fm.kind==='kartu'?'Bank / penerbit':'Pemberi pinjaman'} value={fm.lender} onChange={e=>setFm({...fm,lender:e.target.value})}/>
   {fm.kind==='kartu'?<><input placeholder="Limit kartu *" inputMode="decimal" value={fm.limit} onChange={e=>setFm({...fm,limit:e.target.value})}/>
     <input placeholder="Tagihan / saldo terutang sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
+    {fm.own==='Bersama'&&<label style={{flexBasis:'100%',display:'flex',flexDirection:'column',fontSize:12,gap:2}}>Bagian saya dari saldo di atas (Rp). Kosongkan = separuh. Sisanya dianggap bagian pasangan.<input placeholder="mis. 700.000" inputMode="decimal" value={fm.my0} onChange={e=>setFm({...fm,my0:e.target.value})}/></label>}
     <input placeholder="Tanggal cetak tagihan (1-31)" inputMode="numeric" value={fm.bill} onChange={e=>setFm({...fm,bill:e.target.value})}/></>
    :<><input placeholder="Sisa pokok sekarang *" inputMode="decimal" value={fm.p0} onChange={e=>setFm({...fm,p0:e.target.value})}/>
     <input placeholder="Pokok awal (opsional, untuk progres)" inputMode="decimal" value={fm.p00} onChange={e=>setFm({...fm,p00:e.target.value})}/>
     <input placeholder="Tenor (berapa kali cicil)" inputMode="numeric" value={fm.tenor} onChange={e=>setFm({...fm,tenor:e.target.value})}/>
     <input placeholder="Sudah dibayar berapa kali" inputMode="numeric" value={fm.done} onChange={e=>setFm({...fm,done:e.target.value})}/>
     <input placeholder="Cicilan per bulan" inputMode="decimal" value={fm.inst} onChange={e=>setFm({...fm,inst:e.target.value})}/>
+    {d.debt.some(y=>y.kind==='kartu'&&!y.arch&&y.own===fm.own&&y.id!==fm.id)&&<select value={fm.kart} title="Memakai limit kartu" style={{flexBasis:'100%'}} onChange={e=>setFm({...fm,kart:e.target.value})}><option value="">Tidak memakai limit kartu</option>{d.debt.filter(y=>y.kind==='kartu'&&!y.arch&&y.own===fm.own).map(y=><option key={y.id} value={y.id}>Cicilan ini memakai limit {y.name}</option>)}</select>}
     <input placeholder="Bunga % per tahun (opsional)" inputMode="decimal" value={fm.rate} onChange={e=>setFm({...fm,rate:e.target.value})}/></>}
   <input placeholder="Tanggal jatuh tempo (1-31)" inputMode="numeric" value={fm.due} onChange={e=>setFm({...fm,due:e.target.value})}/>
   {fm.kind==='utang'&&<select value={fm.ecat||''} title="Hitung sebagai pengeluaran" onChange={e=>{if(e.target.value==='__new'){const n=newEc();n&&setFm({...fm,ecat:n})}else setFm({...fm,ecat:e.target.value})}}><option value="">Bukan biaya (pinjaman murni)</option>{[...new Set([fm.ecat,...d.cout])].filter(Boolean).map(c=><option key={c} value={c}>Dihitung sebagai biaya: {c}</option>)}<option value="__new">+ Kategori biaya baru…</option></select>}
@@ -746,16 +756,16 @@ function Invest({d,setD,bal}){
  const [open,setOpen]=useState({}),[ni,setNi]=useState(false),[fi,setFi]=useState({name:'',cls:'',rk:'',own:'Pribadi',share:'50',rdn:'',q:'',p:'',pr:''}),
   [ei,setEi]=useState(null),[fx,setFx]=useState(null),[et,setEt]=useState(null),[pu,setPu]=useState(null);
  const aN=id=>(d.accs.find(x=>x.id===id)||{name:id?'Akun pribadi':'-'}).name,S=d.set;
- const eiInit=i=>{const o=d.itx.find(t=>t.ins===i.id&&t.k==='open');return{id:i.id,name:i.name,cls:i.cls,rk:i.rk||'',own:i.own,share:String(i.share||50),rdn:i.rdn||'',q:o?String(o.qty).replace('.',','):'',p:o?String(o.price).replace('.',','):''}};
+ const eiInit=i=>{const o=d.itx.find(t=>t.ins===i.id&&t.k==='open');return{id:i.id,name:i.name,cls:i.cls,rk:i.rk||'',own:i.own,share:String(shv(i.share)),rdn:i.rdn||'',q:o?String(o.qty).replace('.',','):'',p:o?String(o.price).replace('.',','):''}};
  const newAst=()=>{const n=(prompt('Nama jenis aset baru:')||'').trim();if(!n)return null;const ex=d.ast.find(c=>c.toLowerCase()===n.toLowerCase());if(ex)return ex;setD(x=>({...x,ast:[...x.ast,n]}));return n};
  const AstPick=(v,fn)=><select value={v} title="Jenis aset" onChange={e=>{if(e.target.value==='__new'){const n=newAst();n&&fn(n)}else fn(e.target.value)}}>{[...new Set([v,...d.ast])].filter(Boolean).map(c=><option key={c}>{c}</option>)}<option value="__new">+ Jenis baru…</option></select>;
  const AccSel=(v,fn,pre)=><select value={v} title="Akun" onChange={e=>fn(e.target.value)}><option value="">Tidak dicatat di akun</option>{d.accs.map(a=><option key={a.id} value={a.id}>{pre+a.name}</option>)}</select>;
- const IVs=d.ins.filter(i=>!i.arch).map(i=>({i,c:calc(i,d.itx),sh:(i.own==='Bersama'?(i.share>0?i.share:50):100)/100}));
+ const IVs=d.ins.filter(i=>!i.arch).map(i=>({i,c:calc(i,d.itx),sh:(i.own==='Bersama'?shv(i.share):100)/100}));
  const tot=IVs.reduce((s,x)=>({v:s.v+x.c.val*x.sh,c:s.c+x.c.cost*x.sh,r:s.r+x.c.real*x.sh,dv:s.dv+x.c.divs*x.sh}),{v:0,c:0,r:0,dv:0});
  const newFx=(i,k)=>({ins:i.id,k,date:k==='open'?'':td,qty:'',price:'',fee:'',amt:'',note:'',acc:i.rdn||''});
  const addIns=e=>{e.preventDefault();if(!fi.name.trim())return alert('Isi nama atau kode instrumen.');
   const q=num(fi.q),p=num(fi.p);if((q>0)!==(p>0))return alert('Isi jumlah lembar dan harga rata-rata sekaligus, atau kosongkan keduanya.');
-  const id=uid(),ins={id,name:fi.name.trim(),cls:fi.cls||d.ast[0]||'Lainnya',...(fi.rk?{rk:fi.rk}:{}),own:fi.own,share:fi.own==='Bersama'?(num(fi.share)||50):100,rdn:fi.rdn,price:num(fi.pr),pdate:fi.pr?td:''};
+  const id=uid(),ins={id,name:fi.name.trim(),cls:fi.cls||d.ast[0]||'Lainnya',...(fi.rk?{rk:fi.rk}:{}),own:fi.own,share:fi.own==='Bersama'?shIn(fi.share):100,rdn:fi.rdn,price:num(fi.pr),pdate:fi.pr?td:''};
   setD(x=>({...x,ins:[...x.ins,ins],itx:q>0?[...x.itx,{id:uid(),ins:id,k:'open',date:'',qty:q,price:p,fee:0,note:'Saldo awal',amt:0,acc:'',tid:null}]:x.itx}));
   setFi({...fi,name:'',q:'',p:'',pr:''});setNi(false)};
  const saveEi=()=>{if(!ei.name.trim())return alert('Isi nama instrumen.');const q=num(ei.q),p=num(ei.p);
@@ -763,7 +773,7 @@ function Invest({d,setD,bal}){
   setD(x=>{const ex=x.itx.find(t=>t.ins===ei.id&&t.k==='open');let itx=x.itx;
    if(q>0){itx=ex?itx.map(t=>t.id===ex.id?{...t,qty:q,price:p,note:(t.note||'').replace(/\s*\(dari data lama[^)]*\)/,'')||'Saldo awal'}:t):[...itx,{id:uid(),ins:ei.id,k:'open',date:'',qty:q,price:p,fee:0,note:'Saldo awal',amt:0,acc:'',tid:null}]}
    else if(ex)itx=itx.filter(t=>t.id!==ex.id);
-   return{...x,itx,ins:x.ins.map(i=>i.id===ei.id?{...i,name:ei.name.trim(),cls:ei.cls,rk:ei.rk||undefined,own:ei.own,share:ei.own==='Bersama'?(num(ei.share)||50):100,rdn:ei.rdn}:i)}});setEi(null)};
+   return{...x,itx,ins:x.ins.map(i=>i.id===ei.id?{...i,name:ei.name.trim(),cls:ei.cls,rk:ei.rk||undefined,own:ei.own,share:ei.own==='Bersama'?shIn(ei.share):100,rdn:ei.rdn}:i)}});setEi(null)};
  const savePu=()=>{const v=num(pu.price);if(!(v>0))return alert('Isi harga terakhir.');setD(x=>({...x,ins:x.ins.map(i=>i.id===pu.id?{...i,price:v,pdate:pu.date}:i)}));setPu(null)};
  const delIns=i=>{const has=d.itx.some(t=>t.ins===i.id);
   if(!has){if(confirm('Hapus instrumen "'+i.name+'"?'))setD(x=>({...x,ins:x.ins.filter(v=>v.id!==i.id)}));return}
@@ -813,7 +823,7 @@ function Invest({d,setD,bal}){
   return <React.Fragment key={i.id}>
    <tr style={op?{background:'#fff1f6'}:undefined}>
     <td><button className="g" aria-expanded={op} aria-label={(op?'Tutup':'Buka')+' rincian '+i.name} style={{minWidth:34,margin:0,fontWeight:700}} onClick={()=>setOpen({...open,[i.id]:!op})}>{op?'−':'+'}</button></td>
-    <td><b>{i.name}</b><span className="tag" title="Tingkat risiko" style={{marginLeft:6,background:rkOf(i)==='tinggi'?'#ffd9d0':rkOf(i)==='rendah'?'#cdf0e8':'#fff0b8',color:'var(--dk)'}}>Risiko {RKL[rkOf(i)].toLowerCase()}</span>{i.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {i.share||50}%</span>}{legacy&&<button className="g" style={{marginLeft:6,color:'var(--loss)'}} onClick={()=>{setOpen({...open,[i.id]:true});setEi(eiInit(i))}}>Lengkapi lembar</button>}</td>
+    <td><b>{i.name}</b><span className="tag" title="Tingkat risiko" style={{marginLeft:6,background:rkOf(i)==='tinggi'?'#ffd9d0':rkOf(i)==='rendah'?'#cdf0e8':'#fff0b8',color:'var(--dk)'}}>Risiko {RKL[rkOf(i)].toLowerCase()}</span>{i.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'var(--sand)',color:'var(--dk)'}}>Bersama · saya {shv(i.share)}%</span>}{legacy&&<button className="g" style={{marginLeft:6,color:'var(--loss)'}} onClick={()=>{setOpen({...open,[i.id]:true});setEi(eiInit(i))}}>Lengkapi lembar</button>}</td>
     <td style={{textAlign:'right'}}>{Q(c.q)}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}>{c.q>0?P(c.avg):'-'}</td>
     <td style={{textAlign:'right',whiteSpace:'nowrap'}}>{c.hasPrice?P(i.price):<span className="mu">belum diisi</span>}{i.pdate&&<div className="mu" style={{fontSize:11}}>per {i.pdate}</div>}</td>
     <td style={{textAlign:'right',whiteSpace:'nowrap'}}>{$(c.cost)}</td><td style={{textAlign:'right',whiteSpace:'nowrap'}}><b>{$(c.val)}</b></td>
@@ -829,7 +839,7 @@ function Invest({d,setD,bal}){
      <input type="date" value={pu.date} onChange={e=>setPu({...pu,date:e.target.value})}/><button className="b" style={{flex:'0 0 auto'}} onClick={savePu}>Simpan harga</button><button className="g" style={{flex:'0 0 auto'}} onClick={()=>setPu(null)}>Batal</button></div>}
     {ei&&ei.id===i.id&&<div className="row" style={{background:'var(--sand)',borderRadius:12,padding:10}}><input placeholder="Nama / kode" value={ei.name} onChange={e=>setEi({...ei,name:e.target.value})}/>
      {AstPick(ei.cls,v=>setEi({...ei,cls:v}))}<select value={ei.rk||''} title="Tingkat risiko" onChange={e=>setEi({...ei,rk:e.target.value})}><option value="">Risiko: otomatis ({RKL[rkGuess(ei)]})</option><option value="rendah">Risiko rendah</option><option value="sedang">Risiko sedang</option><option value="tinggi">Risiko tinggi</option></select><select value={ei.own} title="Kepemilikan" onChange={e=>setEi({...ei,own:e.target.value})}><option>Pribadi</option><option>Bersama</option></select>
-     {ei.own==='Bersama'&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={ei.share} onChange={e=>setEi({...ei,share:e.target.value})}/>}
+     {ei.own==='Bersama'&&ShareF(ei.share,x=>setEi({...ei,share:x}))}
      <select value={ei.rdn} title="Rekening RDN" onChange={e=>setEi({...ei,rdn:e.target.value})}><option value="">Rekening RDN: belum dipilih</option>{d.accs.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>
      <input placeholder="Jumlah lembar/unit (saldo awal)" inputMode="decimal" value={ei.q} onChange={e=>setEi({...ei,q:e.target.value})}/><input placeholder="Harga rata-rata (saldo awal)" inputMode="decimal" value={ei.p} onChange={e=>setEi({...ei,p:e.target.value})}/>
      <div className="mu" style={{flexBasis:'100%',fontSize:12}}>Desimal pakai koma (mis. 1,5). Titik dibaca pemisah ribuan kalau 3 digit (1.500 = 1500). Kosongkan keduanya kalau tidak ada saldo awal.</div>
@@ -855,7 +865,7 @@ function Invest({d,setD,bal}){
    <input placeholder="Nama / kode (mis. BBCA) *" value={fi.name} onChange={e=>setFi({...fi,name:e.target.value})}/>
    {AstPick(fi.cls||d.ast[0]||'',v=>setFi({...fi,cls:v}))}<select value={fi.rk||''} title="Tingkat risiko" onChange={e=>setFi({...fi,rk:e.target.value})}><option value="">Risiko: otomatis ({RKL[rkGuess(fi)]})</option><option value="rendah">Risiko rendah</option><option value="sedang">Risiko sedang</option><option value="tinggi">Risiko tinggi</option></select>
    <select value={fi.own} title="Kepemilikan" onChange={e=>setFi({...fi,own:e.target.value})}><option>Pribadi</option><option>Bersama</option></select>
-   {fi.own==='Bersama'&&<input placeholder="Porsi saya (%)" inputMode="decimal" value={fi.share} onChange={e=>setFi({...fi,share:e.target.value})}/>}
+   {fi.own==='Bersama'&&ShareF(fi.share,x=>setFi({...fi,share:x}))}
    <select value={fi.rdn} title="Rekening RDN / sumber dana" onChange={e=>setFi({...fi,rdn:e.target.value})}><option value="">Rekening RDN: belum dipilih</option>{d.accs.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>
    <input placeholder="Saldo awal: jumlah lembar/unit" inputMode="decimal" value={fi.q} onChange={e=>setFi({...fi,q:e.target.value})}/>
    <input placeholder="Saldo awal: harga rata-rata" inputMode="decimal" value={fi.p} onChange={e=>setFi({...fi,p:e.target.value})}/>
@@ -1108,7 +1118,7 @@ function App(){
   edit=(k,id,p)=>setD(x=>({...x,[k]:x[k].map(i=>i.id===id?{...i,...p}:i)})),ask=m=>num(prompt(m)||0);
  const now=new Date(),ym=now.getFullYear()+'-'+pad(now.getMonth()+1);
  const bal=a=>a.open+d.tx.reduce((s,t)=>s+(t.acc===a.id?((t.type==='in'||(t.type==='inv'&&t.dir==='in'))?t.amt:-t.amt):0)+(t.type==='tf'&&t.to===a.id?t.amt:0),0);
- const IV=d.ins.filter(i=>!i.arch).map(i=>({i,c:calc(i,d.itx),sh:(i.own==='Bersama'?(i.share>0?i.share:50):100)/100}));
+ const IV=d.ins.filter(i=>!i.arch).map(i=>({i,c:calc(i,d.itx),sh:(i.own==='Bersama'?shv(i.share):100)/100}));
  const cash=d.accs.filter(a=>a.nw!==false).reduce((s,a)=>s+bal(a),0),inv=IV.reduce((s,x)=>s+x.c.val*x.sh,0),cost=IV.reduce((s,x)=>s+x.c.cost*x.sh,0),
   liab=d.debt.reduce((s,x)=>s+remOf(x)*dSh(x),0),assets=cash+inv,nw=assets-liab;
  const EX=expList(d),exM=k=>EX.filter(r=>r.date.slice(0,7)===k).reduce((q,r)=>q+r.amt,0);
@@ -1188,7 +1198,7 @@ function App(){
    <button className="g" onClick={()=>setTab('bud')}>Buka Budgeting</button></Card>
   <Card t="Pelacakan Investasi" c="c4 mint">{alloc.length?<div className="row" style={{flexWrap:'nowrap'}}><Donut data={alloc}/><div>{alloc.map(a=><div key={a.n}><span style={{color:a.c}}>●</span> {a.n} {Math.round(a.v/inv*100)}%</div>)}<div style={{marginTop:6}}>{gl(inv,cost)}</div><div className="mu" style={{fontSize:12,marginTop:6}}>Risiko: rendah {Math.round(IV.filter(a=>rkOf(a.i)==='rendah').reduce((q,a)=>q+a.c.val*a.sh,0)/inv*100)}% · sedang {Math.round(IV.filter(a=>rkOf(a.i)==='sedang').reduce((q,a)=>q+a.c.val*a.sh,0)/inv*100)}% · tinggi {Math.round(IV.filter(a=>rkOf(a.i)==='tinggi').reduce((q,a)=>q+a.c.val*a.sh,0)/inv*100)}%</div></div></div>:<p className="mu">Belum ada instrumen investasi.</p>}</Card>
   <Card t="Utang" c="c4 peach">{dU.length?dU.map(x=>{const u=nextDue(x),st=dueState(x),ci=cicInfo(x);return <div key={x.id} style={{margin:'0 0 10px'}}><div className="row" style={{margin:0,flexWrap:'nowrap'}}><b style={{flex:2}}>{x.name}{x.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'#fff',color:'var(--dk)'}}>Bersama</span>}</b><span>{$(remOf(x))}</span>{u&&<span className={'tag'+(st||u.n<=7?' r':'')} style={{flex:'0 0 auto',minWidth:0}}>{u.l}</span>}</div>{ci&&<div className="mu" style={{fontSize:12}}>Sisa {ci.sisa} dari {ci.tot} cicilan (sudah ke-{ci.ke})</div>}</div>}):<p className="mu">Tidak ada utang aktif.</p>}<button className="g" onClick={()=>setTab('debt')}>Buka Utang</button></Card>
-  <Card t="Kartu Kredit & Paylater" c="c4 lemon">{dK.length?dK.map(x=>{const pc=x.limit>0?remOf(x)/x.limit*100:0,ki=kInfo(x);return <div key={x.id} style={{marginBottom:10}}><div className="row" style={{margin:0,flexWrap:'nowrap'}}><b style={{flex:2}}>{x.name}{x.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'#fff',color:'var(--dk)'}}>Bersama</span>}</b><span className="mu" style={{textAlign:'right'}}>{K(remOf(x))} / {K(x.limit)}</span></div><Bar v={pc} t={bt(pc)}/><div className="mu" style={{fontSize:12}}>{pc>100&&<span className="tag r" style={{marginRight:6}}>Melebihi limit</span>}{pc>=80&&pc<=100&&<span className="tag r" style={{marginRight:6}}>Hampir penuh</span>}{ki.act>0&&<>{ki.act} cicilan aktif: sisa {ki.sisa} dari {ki.tot} bulan</>}</div></div>}):<p className="mu">Tidak ada kartu aktif.</p>}<button className="g" onClick={()=>setTab('debt')}>Buka Kartu Kredit</button></Card>
+  <Card t="Kartu Kredit & Paylater" c="c4 lemon">{dK.length?dK.map(x=>{const pc=x.limit>0?usedOf(d,x)/x.limit*100:0,ki=kInfo(x);return <div key={x.id} style={{marginBottom:10}}><div className="row" style={{margin:0,flexWrap:'nowrap'}}><b style={{flex:2}}>{x.name}{x.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'#fff',color:'var(--dk)'}}>Bersama</span>}</b><span className="mu" style={{textAlign:'right'}}>{K(usedOf(d,x))} / {K(x.limit)}</span></div><Bar v={pc} t={bt(pc)}/><div className="mu" style={{fontSize:12}}>{pc>100&&<span className="tag r" style={{marginRight:6}}>Melebihi limit</span>}{pc>=80&&pc<=100&&<span className="tag r" style={{marginRight:6}}>Hampir penuh</span>}{ki.act>0&&<>{ki.act} cicilan aktif: sisa {ki.sisa} dari {ki.tot} bulan</>}</div></div>}):<p className="mu">Tidak ada kartu aktif.</p>}<button className="g" onClick={()=>setTab('debt')}>Buka Kartu Kredit</button></Card>
   <Card t="Dana & Target" c="c4 mint">{(d.fund||[]).filter(f=>!f.arch).length?[...d.fund].filter(f=>!f.arch).sort((x,y)=>x.name.localeCompare(y.name,'id')).map(f=>{const nx=fNext(d,f,efT,d.set.efm),b=fBal(d,f);return <div key={f.id} style={{marginBottom:10}}><div className="row" style={{margin:0,flexWrap:'nowrap'}}><b style={{flex:2}}>{f.name}{f.own==='Bersama'&&<span className="tag" style={{marginLeft:6,background:'#fff',color:'var(--dk)'}}>Bersama</span>}</b><span className="mu" style={{textAlign:'right'}}>{K(b)}{nx?' / '+K(nx.goal):''}</span></div>{nx&&<><Bar v={nx.pc}/><div className="mu" style={{fontSize:12}}>{nx.t.date?'Sampai '+nx.t.date+' · ':''}{nx.done?'Target tercapai':nx.expired?<span className="tag r">Target terlewat · kurang {K(nx.goal-b)}</span>:(nx.hint?nx.hint+(nx.per>0?' · '+K(nx.per)+'/bln':''):'Kurang '+K(nx.goal-b))}</div></>}</div>}):<p className="mu">Belum ada dana. Atur di menu Dana Darurat & Sinking.</p>}<button className="g" onClick={()=>setTab('ef')}>Buka Dana</button></Card></div></>;
 
  const CF=()=><CashFlow d={d} setD={setD} bal={bal}/>;
