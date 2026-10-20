@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-S0lp+k7zWUMk2ixteM6HZvu8L9Eh//OVrt+ZfbCpmgY=' 'sha256-IXWO0ITNDjfnNXIu5POVfqlgYoop36bDzhodR6LW5Pc=' 'sha256-INraSlsg8GVH0lgB6k3YaaZlpnJqRaAlY0EuIuTuX5k='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src https://script.google.com https://*.googleusercontent.com; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="id"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-S0lp+k7zWUMk2ixteM6HZvu8L9Eh//OVrt+ZfbCpmgY=' 'sha256-IXWO0ITNDjfnNXIu5POVfqlgYoop36bDzhodR6LW5Pc=' 'sha256-DwG3mpGVUEHIjNte6UOX9DJ1OPoeFo95A54kyP/2keI='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Veltrix Flow</title>
 <style>
 :root{--paper:#e6f7f4;--sf:#ffffff;--ink:#16353f;--mu:#55707a;--ln:#d3eae6;--dk:#0f4c5c;--br:#0b7f78;--br2:#0d8a82;--bar:#14b8a6;--tan:#ff8a6b;--sand:#e1f3f0;--gain:#1f7a3d;--loss:#c62828;--warn:#ffefb0}
@@ -629,7 +629,8 @@ const mig = s => {
   o.ast = [...new Set([...(o.ast || INIT.ast), ...o.ins.map(i => i.cls)])];
   return o;
 };
-const TKEY = 'veltrix_tok',
+const APP_V = '2026-10-20 keamanan-v4 (login email)',
+  TKEY = 'veltrix_tok',
   SKEY = 'veltrix_sync_v1',
   SY0 = {
     url: '',
@@ -8343,7 +8344,7 @@ function Login({
   onDone
 }) {
   const [f, setF] = useState({
-      u: sy0.u || '',
+      u: sy0.email || '',
       k: ''
     }),
     [m, setM] = useState(() => {
@@ -8358,11 +8359,11 @@ function Login({
     }),
     [bz, setBz] = useState(false),
     [fg, setFg] = useState(false),
-    [fu, setFu] = useState(sy0.u || '');
+    [fu, setFu] = useState(sy0.email || '');
   const url0 = sy0.url || DEFAULT_URL;
   const doReset = async () => {
     const u = fu.trim().toLowerCase();
-    if (!u) return setM('Isi nama pengguna dulu.');
+    if (!u) return setM('Isi email dulu.');
     setBz(true);
     setM('');
     try {
@@ -8383,7 +8384,7 @@ function Login({
     const url = url0,
       u = f.u.trim().toLowerCase(),
       k = f.k.trim();
-    if (!u || !k) return setM('Isi nama pengguna dan kunci.');
+    if (!u || !k) return setM('Isi email dan kata sandi.');
     setBz(true);
     setM('');
     try {
@@ -8394,9 +8395,11 @@ function Login({
       }, 'login');
       if (r.ok && r.token) onDone({
         url,
-        u,
-        k: r.token
-      });else setM(r.message || 'Nama pengguna atau kunci salah.');
+        u: r.user,
+        k: r.token,
+        email: r.email || u,
+        adm: !!r.adm
+      });else if (!r.v) setM('Server Drive masih versi lama. Tempel kode .gs terbaru di Apps Script, lalu Terapkan > Kelola deployment > Edit > Versi baru.');else setM(r.message || 'Email atau kata sandi salah.');
     } catch (x) {
       setM('Tidak bisa terhubung ke Drive. Cek internet dan alamat Drive.');
     } finally {
@@ -8628,12 +8631,12 @@ function Login({
   }, "Masuk untuk melihat keuanganmu."), /*#__PURE__*/React.createElement("label", {
     className: "t",
     htmlFor: "lg-u"
-  }, "Nama pengguna"), /*#__PURE__*/React.createElement("input", {
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
     id: "lg-u",
     className: "i",
-    type: "text",
+    type: "email",
     autoComplete: "username",
-    placeholder: "mis. sutina",
+    placeholder: "nama@email.com",
     value: f.u,
     onChange: e => setF({
       ...f,
@@ -8642,12 +8645,12 @@ function Login({
   }), /*#__PURE__*/React.createElement("label", {
     className: "t",
     htmlFor: "lg-k"
-  }, "Kunci"), /*#__PURE__*/React.createElement("input", {
+  }, "Kata sandi"), /*#__PURE__*/React.createElement("input", {
     id: "lg-k",
     className: "i",
     type: "password",
     autoComplete: "current-password",
-    placeholder: "Tempel kunci rahasiamu",
+    placeholder: "Kata sandi kamu",
     value: f.k,
     onChange: e => setF({
       ...f,
@@ -8680,7 +8683,14 @@ function Login({
       setM('');
       if (!fu) setFu(f.u);
     }
-  }, "Lupa kunci?"), fg && /*#__PURE__*/React.createElement("div", {
+  }, "Lupa kunci?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      fontSize: 11,
+      color: '#7a9aa3',
+      marginTop: 6
+    }
+  }, "Versi aplikasi ", APP_V), fg && /*#__PURE__*/React.createElement("div", {
     style: {
       background: '#f4fbf9',
       border: '2px solid #cfe6e2',
@@ -8697,8 +8707,8 @@ function Login({
   }, "Kunci baru akan dikirim ke email yang terdaftar untuk nama pengguna ini. Kunci lama langsung tidak berlaku."), /*#__PURE__*/React.createElement("input", {
     className: "i",
     type: "text",
-    "aria-label": "Nama pengguna untuk reset",
-    placeholder: "Nama pengguna",
+    "aria-label": "Email untuk reset",
+    placeholder: "Email",
     value: fu,
     onChange: e => setFu(e.target.value),
     style: {
@@ -8842,11 +8852,15 @@ function App() {
         keep = o.u === c.u && o.url === c.url && (o.rm > 0 || o.rs > 0);
       setSy(keep ? {
         k: c.k,
-        auto: true
+        auto: true,
+        email: c.email,
+        adm: c.adm
       } : {
         url: c.url,
         u: c.u,
         k: c.k,
+        email: c.email,
+        adm: c.adm,
         ...SYR0,
         h: '',
         auto: true
@@ -9366,6 +9380,12 @@ function App() {
   const [cp, setCp] = useState(6),
     [ckM, setCkM] = useState(''),
     [sm, setSm] = useState(null),
+    [ua, setUa] = useState({
+      list: null,
+      msg: '',
+      f: null,
+      bz: false
+    }),
     [idleW, setIdleW] = useState(0),
     [ckO, setCkO] = useState({});
   const mAll = Array.from({
@@ -10987,7 +11007,12 @@ function App() {
       c: "c12"
     }, sy.url ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("p", {
       className: "mu"
-    }, "Masuk sebagai ", /*#__PURE__*/React.createElement("b", null, sy.u), ". Data tersimpan di Google Drive."), /*#__PURE__*/React.createElement("div", {
+    }, "Masuk sebagai ", /*#__PURE__*/React.createElement("b", null, sy.email || sy.u), sy.adm && /*#__PURE__*/React.createElement("span", {
+      className: "tag",
+      style: {
+        marginLeft: 6
+      }
+    }, "Admin"), ". Data tersimpan di Google Drive."), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 8,
@@ -11036,7 +11061,217 @@ function App() {
       }
     }, ss.msg)) : /*#__PURE__*/React.createElement("p", {
       className: "mu"
-    }, "Belum masuk.")), /*#__PURE__*/React.createElement(Card, {
+    }, "Belum masuk.")), sy.adm && /*#__PURE__*/React.createElement(Card, {
+      t: "Kelola akun (Admin)",
+      c: "c12"
+    }, (() => {
+      const call = async (act, ex) => {
+        setUa(z => ({
+          ...z,
+          bz: true,
+          msg: ''
+        }));
+        try {
+          const r = await gsCall(syR.current, act, ex);
+          if (r.ok) setUa(z => ({
+            ...z,
+            bz: false,
+            list: r.users || z.list,
+            msg: r.message || '',
+            f: act === 'users' ? z.f : null
+          }));else setUa(z => ({
+            ...z,
+            bz: false,
+            msg: r.message || 'Gagal.'
+          }));
+        } catch (e) {
+          setUa(z => ({
+            ...z,
+            bz: false,
+            msg: 'Tidak bisa terhubung: ' + e.message
+          }));
+        }
+      };
+      const f = ua.f,
+        setF = p => setUa(z => ({
+          ...z,
+          f: {
+            ...z.f,
+            ...p
+          }
+        })),
+        submit = e => {
+          e.preventDefault();
+          if (!f.ok) return setUa(z => ({
+            ...z,
+            msg: 'Isi kata sandi kamu untuk konfirmasi.'
+          }));
+          if (f.mode === 'add') call('useradd', {
+            name: (f.name || '').trim().toLowerCase(),
+            email: (f.email || '').trim().toLowerCase(),
+            pw: f.pw || '',
+            ok: f.ok
+          });else call('userpw', {
+            name: f.name,
+            pw: f.pw || '',
+            ok: f.ok
+          });
+        };
+      const del = u => {
+        const p = prompt('Hapus akun ' + u.email + '? Datanya tetap ada di Drive. Ketik kata sandi kamu untuk konfirmasi:');
+        if (p) call('userdel', {
+          name: u.name,
+          ok: p
+        });
+      };
+      const unl = u => {
+        const p = prompt('Buka kunci akun ' + u.email + '. Ketik kata sandi kamu untuk konfirmasi:');
+        if (p) call('userunlock', {
+          name: u.name,
+          ok: p
+        });
+      };
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("p", {
+        className: "mu"
+      }, "Buat akun baru dan atur kata sandinya dari sini. Kata sandi tidak bisa dilihat siapa pun setelah disimpan, hanya bisa diatur ulang."), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          margin: '6px 0'
+        }
+      }, /*#__PURE__*/React.createElement("button", {
+        className: "g",
+        disabled: ua.bz,
+        onClick: () => call('users')
+      }, ua.list ? 'Muat ulang daftar' : 'Tampilkan akun'), /*#__PURE__*/React.createElement("button", {
+        className: "b",
+        onClick: () => setUa(z => ({
+          ...z,
+          f: {
+            mode: 'add',
+            name: '',
+            email: '',
+            pw: '',
+            ok: ''
+          }
+        }))
+      }, "+ Tambah akun")), ua.msg && /*#__PURE__*/React.createElement("div", {
+        className: "mu",
+        role: "status",
+        style: {
+          margin: '4px 0'
+        }
+      }, ua.msg), f && /*#__PURE__*/React.createElement("form", {
+        className: "row",
+        style: {
+          background: '#D5F1EB',
+          borderRadius: 12,
+          padding: 10,
+          margin: '8px 0'
+        },
+        onSubmit: submit
+      }, f.mode === 'add' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+        placeholder: "Nama pengguna (huruf kecil/angka, mis. wiriya)",
+        value: f.name,
+        onChange: e => setF({
+          name: e.target.value
+        })
+      }), /*#__PURE__*/React.createElement("input", {
+        type: "email",
+        placeholder: "Email untuk masuk *",
+        value: f.email,
+        onChange: e => setF({
+          email: e.target.value
+        })
+      })) : /*#__PURE__*/React.createElement("b", {
+        style: {
+          flexBasis: '100%'
+        }
+      }, "Atur kata sandi ", f.email), /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        autoComplete: "off",
+        placeholder: "Kata sandi baru (min. 10 karakter) *",
+        value: f.pw,
+        onChange: e => setF({
+          pw: e.target.value
+        })
+      }), /*#__PURE__*/React.createElement("input", {
+        type: "password",
+        autoComplete: "current-password",
+        placeholder: "Kata sandi kamu sendiri (konfirmasi) *",
+        value: f.ok,
+        onChange: e => setF({
+          ok: e.target.value
+        })
+      }), /*#__PURE__*/React.createElement("button", {
+        className: "b",
+        style: {
+          flex: '0 0 auto'
+        },
+        disabled: ua.bz
+      }, "Simpan"), /*#__PURE__*/React.createElement("button", {
+        type: "button",
+        className: "g",
+        style: {
+          flex: '0 0 auto'
+        },
+        onClick: () => setUa(z => ({
+          ...z,
+          f: null
+        }))
+      }, "Batal")), ua.list && /*#__PURE__*/React.createElement("table", {
+        style: {
+          width: '100%',
+          fontSize: 13
+        }
+      }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+        style: {
+          textAlign: 'left'
+        }
+      }, "Email"), /*#__PURE__*/React.createElement("th", {
+        style: {
+          textAlign: 'left'
+        }
+      }, "Nama"), /*#__PURE__*/React.createElement("th", {
+        style: {
+          textAlign: 'left'
+        }
+      }, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, ua.list.map(u => /*#__PURE__*/React.createElement("tr", {
+        key: u.name
+      }, /*#__PURE__*/React.createElement("td", null, u.email || '-'), /*#__PURE__*/React.createElement("td", null, u.name), /*#__PURE__*/React.createElement("td", null, u.admin ? 'Admin' : 'Anggota', u.locked && /*#__PURE__*/React.createElement("span", {
+        className: "tag r",
+        style: {
+          marginLeft: 4
+        }
+      }, "Terkunci")), /*#__PURE__*/React.createElement("td", {
+        style: {
+          textAlign: 'right'
+        }
+      }, !u.admin && /*#__PURE__*/React.createElement(Menu, {
+        label: 'Aksi ' + u.email,
+        items: [{
+          l: 'Atur kata sandi',
+          fn: () => setUa(z => ({
+            ...z,
+            f: {
+              mode: 'pw',
+              name: u.name,
+              email: u.email,
+              pw: '',
+              ok: ''
+            }
+          }))
+        }, {
+          l: 'Buka kunci',
+          fn: () => unl(u)
+        }, {
+          l: 'Hapus',
+          danger: true,
+          fn: () => del(u)
+        }]
+      })))))));
+    })()), /*#__PURE__*/React.createElement(Card, {
       t: "Asumsi FIRE",
       c: "c7"
     }, /*#__PURE__*/React.createElement("div", {
@@ -11190,7 +11425,7 @@ function App() {
       c: "c12"
     }, /*#__PURE__*/React.createElement("p", {
       className: "mu"
-    }, "Simpan data ke Google Drive lewat Apps Script supaya sama di semua perangkat. Tempel URL aplikasi web dan kunci dari script-mu. Kunci itu rahasia, jangan dibagikan."), /*#__PURE__*/React.createElement("div", {
+    }, "Simpan data ke Google Drive lewat Apps Script supaya sama di semua perangkat. Tempel URL aplikasi web dari script-mu. Masuk memakai email dan kata sandi dari halaman login."), /*#__PURE__*/React.createElement("div", {
       className: "row"
     }, /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", {
       className: "lbl"
@@ -11201,33 +11436,6 @@ function App() {
         const v = e.target.value.trim();
         v !== syR.current.url && setSy({
           url: v,
-          ...SYR0,
-          h: ''
-        });
-      }
-    })), /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", {
-      className: "lbl"
-    }, "Nama pengguna"), /*#__PURE__*/React.createElement("input", {
-      defaultValue: sy.u,
-      placeholder: "mis. sutina",
-      onBlur: e => {
-        const v = e.target.value.trim().toLowerCase();
-        v !== syR.current.u && setSy({
-          u: v,
-          ...SYR0,
-          h: ''
-        });
-      }
-    })), /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", {
-      className: "lbl"
-    }, "Kunci"), /*#__PURE__*/React.createElement("input", {
-      type: "password",
-      defaultValue: sy.k,
-      placeholder: "kunci dari log Apps Script",
-      onBlur: e => {
-        const v = e.target.value.trim();
-        v !== syR.current.k && setSy({
-          k: v,
           ...SYR0,
           h: ''
         });
