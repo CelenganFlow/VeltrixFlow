@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-S0lp+k7zWUMk2ixteM6HZvu8L9Eh//OVrt+ZfbCpmgY=' 'sha256-IXWO0ITNDjfnNXIu5POVfqlgYoop36bDzhodR6LW5Pc=' 'sha256-DwG3mpGVUEHIjNte6UOX9DJ1OPoeFo95A54kyP/2keI='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="id"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-S0lp+k7zWUMk2ixteM6HZvu8L9Eh//OVrt+ZfbCpmgY=' 'sha256-IXWO0ITNDjfnNXIu5POVfqlgYoop36bDzhodR6LW5Pc=' 'sha256-ojg+UFFs9PehUtA5TqtZ6PQo7WRKBtkmYme/q8A78ss='; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Veltrix Flow</title>
 <style>
 :root{--paper:#e6f7f4;--sf:#ffffff;--ink:#16353f;--mu:#55707a;--ln:#d3eae6;--dk:#0f4c5c;--br:#0b7f78;--br2:#0d8a82;--bar:#14b8a6;--tan:#ff8a6b;--sand:#e1f3f0;--gain:#1f7a3d;--loss:#c62828;--warn:#ffefb0}
@@ -659,6 +659,7 @@ const sLoad = () => {
       ...JSON.parse(localStorage.getItem(SKEY) || sessionStorage.getItem(SKEY) || '{}')
     };
     o.k = sessionStorage.getItem(TKEY) || '';
+    if (OLD_URLS.indexOf(o.url) >= 0) o.url = DEFAULT_URL;
     return o;
   } catch (e) {
     return {
@@ -851,7 +852,8 @@ const composeD = (mine, shared, u) => {
   });
   return ensureCats(o);
 };
-const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzMDp-1fes0kNcs-TC8N8mItCNFS9P3g2zMJZafyxz1_oBGL6jtIjLhvJzc7RqAzB1_/exec';
+const OLD_URLS = ['https://script.google.com/macros/s/AKfycbzMDp-1fes0kNcs-TC8N8mItCNFS9P3g2zMJZafyxz1_oBGL6jtIjLhvJzc7RqAzB1_/exec'],
+  DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyGT3Jq_aIs029gvR-vcb5LYvUvS6aVUbnHSzvMDni93uk1JqgvW6G8QMWjYJueGMl6/exec';
 const gsCall = async (sy, action, extra) => {
   const r = await fetch(sy.url, {
     method: 'POST',
